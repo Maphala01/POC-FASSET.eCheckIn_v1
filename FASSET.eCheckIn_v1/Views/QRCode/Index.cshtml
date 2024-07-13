@@ -1,4 +1,5 @@
-﻿
+﻿@model FASSET.eCheckIn_v1.Models.QRCodeModel
+
 @{
     Layout = null;
 }
@@ -11,8 +12,19 @@
     <title>Index</title>
 </head>
 <body>
-    <div> 
-        Hello
+    <div class="Body_Body" style="text-align:center;" id="Body_Body">
+        @if (ViewBag.QRCodeExpired != null)
+        {
+            <h2>QR Code Expired</h2>
+            <p>The QR code you are trying to access has expired.</p>
+        }
+        else
+        {
+            <h2>FASSET eCheck-In :<span id="date-display"></span></h2>
+            <img class="MainQrCode" src="@Model.QRCodeImageUrl" alt="Daily QR Code" />
+            <h3>Your OTP: @Model.TOTP</h3>
+            <h4>Time left: <span id="timer">30</span> seconds</h4>
+        }
     </div>
 </body>
 </html>
