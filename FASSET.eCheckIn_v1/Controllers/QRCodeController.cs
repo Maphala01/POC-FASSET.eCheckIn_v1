@@ -32,36 +32,45 @@ namespace FASSET.eCheckIn_v1.Controllers
                     return View(model);
                 }
             }
-
-            using (var qrGenerator = new QRCoder.QRCodeGenerator()) // Corrected the usage of QRCodeGenerator here
-            using (var qrCodeData = qrGenerator.CreateQrCode(qrCodeContent, QRCoder.QRCodeGenerator.ECCLevel.Q))
-            using (var qrCode = new QRCoder.QRCode(qrCodeData))
-            using (var bitmap = qrCode.GetGraphic(20))
+            try
             {
-                // Load the logo image
-                var logoPath = Server.MapPath("~/Content/download.jpg");
-                using (var logo = Image.FromFile(logoPath))
+                using (var qrGenerator = new QRCoder.QRCodeGenerator()) // Corrected the usage of QRCodeGenerator here
+                using (var qrCodeData = qrGenerator.CreateQrCode(qrCodeContent, QRCoder.QRCodeGenerator.ECCLevel.Q))
+                using (var qrCode = new QRCoder.QRCode(qrCodeData))
+                using (var bitmap = qrCode.GetGraphic(20))
                 {
-                    var combinedImage = AddLogoToQRCode(bitmap, logo);
+                    // Load the logo image
+                    var logoPath = Server.MapPath("~/Content/download.jpg");
+                    using (var logo = Image.FromFile(logoPath))
+                    {
+                        var combinedImage = AddLogoToQRCode(bitmap, logo);
 
-                    //using (var stream = new MemoryStream())
-                    //{
-                    //    combinedImage.Save(stream, ImageFormat.Png);
-                    //    var qrCodeBase64 = Convert.ToBase64String(stream.ToArray());
-                    //    model.QRCodeImageUrl = $"data:image/png;base64,{qrCodeBase64}";
-                    //}
-                    string fileName = $"{DateTime.UtcNow:yyyyMMddHHmmss}.png";
-                    string filePath = Server.MapPath($"~/Content/QRCodeImages/{fileName}");
-                    combinedImage.Save(filePath, ImageFormat.Png);
+                        //using (var stream = new MemoryStream())
+                        //{
+                        //    combinedImage.Save(stream, ImageFormat.Png);
+                        //    var qrCodeBase64 = Convert.ToBase64String(stream.ToArray());
+                        //    model.QRCodeImageUrl = $"data:image/png;base64,{qrCodeBase64}";
+                        //}
+                        string fileName = $"{DateTime.UtcNow:yyyyMMddHHmmss}.png";
+                        string filePath = Server.MapPath($"~/Content/QRCodeImages/{fileName}");
+                        // Ensure the directory exists and has write permissions
+                        Directory.CreateDirectory(Server.MapPath("~/Content/QRCodeImages"));
+                        combinedImage.Save(filePath, ImageFormat.Png);
 
-                    model.QRCodeImageUrl = Url.Content($"~/Content/QRCodeImages/{fileName}");
+                        model.QRCodeImageUrl = Url.Content($"~/Content/QRCodeImages/{fileName}");
 
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Error generating or saving QR code: " + ex.Message);
             }
 
             TempData["QRCodeImageUrl"] = model.QRCodeImageUrl;
             TempData["TOTP"] = model.TOTP;
             return View(model);
+            
         }
         private Bitmap AddLogoToQRCode(Bitmap qrCodeImage, Image logo)
         {
