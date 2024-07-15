@@ -1,0 +1,291 @@
+﻿:root {
+    /* MAIN COLOURS */
+    --primary-dark: #111111;
+    --primary-light: #ffffff;
+    /* STATUS COLOURS */
+    --error: #FF3366;
+    --default: #D6EDFF;
+    --success: #81E979;
+}
+
+/* General Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #008cba;
+    height: 100%;
+}
+
+.container {
+    height: 100vh; /* Use viewport height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.content {
+    background-color: white;
+    width: 90%; /* Make it responsive */
+    max-width: 500px;
+    padding: 20px; /* Add some padding */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Optional: Add some shadow for better visualization */
+    border-radius: 8px; /* Optional: Add some rounding to the corners */
+}
+
+img {
+    width: 100%;
+    height: auto; /* Maintain aspect ratio */
+    border-radius: 8px 8px 0 0; /* Match the border-radius of the content */
+}
+
+.form-title {
+    padding: 10px 0;
+    text-align: center; /* Center align the title */
+}
+
+.Form {
+    display: block;
+    margin-top: 1rem;
+    overflow: hidden;
+}
+
+    .Form div {
+        position: relative;
+    }
+
+input,
+textarea {
+    background-color: transparent;
+    font-size: 1rem; /* Default font size */
+}
+
+.Form .input-animated input {
+    display: block;
+    border: none;
+    padding: 1.25rem 1rem 0.75rem 1rem;
+    margin-bottom: 1rem;
+    width: 100%;
+    outline: none;
+}
+
+    .Form .input-animated input::placeholder {
+        color: transparent;
+    }
+
+.Form .input-animated input,
+.Form .input-animated label {
+    color: var(--primary-dark); /* Changed to primary-dark to be visible on white background */
+}
+
+.Form .input-animated label {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    border-bottom: 1px solid var(--primary-dark);
+}
+
+    .Form .input-animated label:after {
+        content: '';
+        position: absolute;
+        height: 100%;
+        width: 100%;
+        border-bottom: 2px solid var(--primary-dark);
+        left: 0px;
+        bottom: -2px;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+
+    .Form .input-animated label span {
+        position: absolute;
+        bottom: .5rem;
+        left: 0;
+        transition: all 0.3s ease;
+    }
+
+.Form .input-animated input:not(:placeholder-shown) + label:after,
+.Form textarea:not(:placeholder-shown) {
+    border-color: var(--error);
+}
+
+.Form .input-animated input:not(:placeholder-shown) + .label-name .content-name,
+.Form .input-animated input:not(:placeholder-shown) + .label-email .content-email {
+    color: var(--error);
+}
+
+.Form .input-animated input:valid + .label-name .content-name,
+.Form .input-animated input:valid + .label-email .content-email {
+    color: var(--success);
+}
+
+.Form .input-animated input:valid + label:after,
+.Form textarea:valid {
+    border-color: var(--success);
+}
+
+.Form .input-animated input:focus + label span,
+.Form .input-animated input:valid + label span,
+.Form .input-animated input:not(:placeholder-shown) + label span {
+    transform: translateY(-150%);
+    font-size: .75rem;
+}
+
+.Form .input-animated input:focus + label:after,
+.Form input:valid + label:after,
+.Form input:not(:placeholder-shown) + label:after {
+    transform: translateX(0%);
+}
+
+.Form input:invalid {
+    box-shadow: none;
+}
+
+/* TEXTAREA ONLY */
+.Form textarea {
+    margin-top: 2rem;
+    border: 1px solid var(--primary-dark);
+}
+
+    .Form textarea:focus {
+        box-shadow: inset 0px 0px 1px 1px var(--primary-dark);
+        outline: none;
+    }
+
+    .Form textarea:not(:placeholder-shown) {
+        box-shadow: inset 0px 0px 1px 1px var(--error);
+    }
+
+    .Form textarea:valid {
+        box-shadow: inset 0px 0px 1px 1px var(--success);
+    }
+
+    .Form textarea:invalid {
+        box-shadow: none;
+    }
+
+.Form textarea {
+    color: var(--primary-dark);
+    padding: .75rem 1rem;
+}
+
+    .Form textarea::placeholder {
+        color: var(--primary-dark);
+        font-size: .75rem;
+    }
+
+input[type=number] {
+    width: 100%; /* Full width for better responsiveness */
+}
+
+select {
+    border: none;
+    border-bottom: 1px solid var(--primary-dark);
+    outline: none;
+    margin: 18px 0;
+    padding: 10px 0;
+    width: 100%; /* Full width for better responsiveness */
+}
+
+/* Increase font size when input is focused or contains value */
+.input-animated input:focus,
+.input-animated input:not(:placeholder-shown) {
+    font-size: 1.25rem; /* Adjust the font size as needed */
+}
+
+.beside {
+    display: flex;
+    flex-direction: column; /* Stack items vertically for smaller screens */
+    gap: 10px; /* Add some space between items */
+}
+
+button {
+    color: #ffffff;
+    background-color: #4caf50;
+    height: 40px;
+    width: 100%;
+    margin-top: 15px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    outline: none;
+    text-align: center;
+    font-size: 16px;
+    transition-duration: 0.4s;
+}
+
+    button:hover {
+        background-color: darkgreen;
+    }
+
+/* Media Query for Larger Screens */
+@media (min-width: 600px) {
+    .beside {
+        flex-direction: row; /* Arrange items side by side for larger screens */
+        gap: 10px; /* Add some space between items */
+    }
+
+    input[type=number], select {
+        width: calc(50% - 10px); /* Adjust width for larger screens */
+    }
+}
+
+.otp-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.otp-input {
+    width: 18%;
+    padding: 10px;
+    font-size: 1.5rem;
+    text-align: center;
+    border: 1px solid var(--primary-dark);
+    border-radius: 4px;
+    outline: none;
+    background-color: transparent;
+    color: var(--primary-dark);
+}
+
+    .otp-input:focus {
+        border-color: var(--primary-dark);
+        box-shadow: 0 0 5px var(--primary-dark);
+    }
+
+.MainQrCode {
+    width: 200px; /* Adjust this value to make the image smaller or larger */
+    height: 80rem; /* Maintain aspect ratio */
+    border-radius: 8px; /* Match the border-radius of the content */
+}
+
+#Body_Body {
+    height: 60px !important;
+    margin-top: 100px;
+    background: #111111;
+}
+
+.toast-top-center {
+    text-align: center;
+}
+
+.toast {
+    font-size: 44px !important; /* Adjust the font size as needed */
+}
+
+.toast-title {
+    font-size: 20px; /* Adjust the title font size if needed */
+}
+
+.toast-message {
+    font-size: 44px !important; /* Adjust the message font size if needed */
+}
