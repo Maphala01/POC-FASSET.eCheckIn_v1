@@ -205,7 +205,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
-    <Folder Include="Content\QRCodeImage\" />
+    <Folder Include="Content\QRCodeImages\" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
