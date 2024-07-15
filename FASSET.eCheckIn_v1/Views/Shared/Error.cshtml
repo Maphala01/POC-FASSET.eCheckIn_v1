@@ -5,29 +5,30 @@
     <title>Error</title>
 </head>
 <body>
-    <hgroup>
-        <h1>Error.....Maps</h1>
-        <h2>An error occurred while processing your request.</h2>
-        @if (Model != null)
-        {
-            <div>
-                <h3 class="text-danger">Request ID: @Model.RequestId</h3>
-                <p>
-                    Use this unique Request ID to help track the error.
-                </p>
-            </div>
-        }
+    <h1 class="text-danger">Error....Maaps</h1>
+    <h2 class="text-danger">An error occurred while processing your request.</h2>
 
-        @if (ViewData["Exception"] != null)
-        {
-            <div>
-                <h4 class="text-danger">Exception Message:</h4>
-                <pre>@ViewData["Exception"].Message</pre>
+    @if (Model != null)
+    {
+        <div>
+            <h3 class="text-danger">Request ID: @Model.RequestId</h3>
+            <p>
+                Use this unique Request ID to help track the error.
+            </p>
+        </div>
+    }
 
-                <h4 class="text-danger">Stack Trace:</h4>
-                <pre>@ViewData["Exception"].StackTrace</pre>
-            </div>
-        }
-    </hgroup>
+    @if (ViewData["Exception"] != null)
+    {
+        <div>
+            <h4 class="text-danger">Exception Message:</h4>
+            <pre>@ViewData["Exception"].Message</pre>
+
+            <h4 class="text-danger">Stack Trace:</h4>
+            <pre>@ViewData["Exception"].StackTrace</pre>
+        </div>
+    }
 </body>
 </html>
+
+
