@@ -17,10 +17,9 @@ namespace FASSET.eCheckIn_v1.Models
             var expirationTime = DateTime.UtcNow.AddSeconds(30); // QR code expires in 30 seconds
             var timestamp = expirationTime.ToString("yyyy-MM-dd-HH-mm-ss");
             TOTP = GenerateTOTP(); // Generate and set the TOTP
-                                   ////var url = $"http://172.26.160.1%3A8077?timestamp={timestamp}&otp={TOTP}";web-echeckin.azurewebsites.net
-                                   // var url = "http://172.20.10.2:1048/Registration/Index";
-            //var url = "https://localhost:44302/Registration/Index";
-            var url = $"https://web-echeckin.azurewebsites.net/Registration/Index";
+           // var url = $"http://172.26.160.1%3A8077?timestamp={timestamp}&otp={TOTP}";web-echeckin.azurewebsites.net
+           // var url = "https://localhost:44302/Registration/Index";
+            var url = $"https://webecheckin.azurewebsites.net/Registration/Index";
             return url;
         }
 
