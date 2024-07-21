@@ -233,18 +233,35 @@
             //    document.querySelector('.Form').submit();
             //}
             // Fetch geolocation using ipinfo.io  Work for Midrand
-            $.getJSON('https://ipinfo.io/json')
-                .done(function (response) {
-                    var geoLocation = response.loc;
-                    console.log('Geolocation:', geoLocation);
+            //$.getJSON('https://ipinfo.io/json')
+            //    .done(function (response) {
+            //        var geoLocation = response.loc;
+            //        console.log('Geolocation:', geoLocation);
+            //        document.getElementById('geoLocationDisplay').value = geoLocation;
+            //        $('.Form').submit(); // Submit the form programmatically
+            //    })
+            //    .fail(function (error) {
+            //        console.error('Error fetching geolocation:', error);
+            //        document.getElementById('geoLocationDisplay').value = "0,0";
+            //        $('.Form').submit(); // Submit the form without geolocation
+            //    });
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    var latitude = position.coords.latitude;
+                    var longitude = position.coords.longitude;
+                    var geoLocation = latitude + ',' + longitude;
                     document.getElementById('geoLocationDisplay').value = geoLocation;
-                    $('.Form').submit(); // Submit the form programmatically
-                })
-                .fail(function (error) {
-                    console.error('Error fetching geolocation:', error);
+                    document.querySelector('.Form').submit();
+                }, function (error) {
+                    console.error('Error getting geolocation: ' + error.message);
                     document.getElementById('geoLocationDisplay').value = "0,0";
-                    $('.Form').submit(); // Submit the form without geolocation
+                    document.querySelector('.Form').submit();
                 });
+            } else {
+                console.error('Geolocation is not supported by this browser.');
+                document.getElementById('geoLocationDisplay').value = "0,0";
+                document.querySelector('.Form').submit();
+            }
         }
     </script>
 </body>

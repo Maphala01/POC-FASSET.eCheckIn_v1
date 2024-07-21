@@ -18,8 +18,8 @@ namespace FASSET.eCheckIn_v1.Models
             var timestamp = expirationTime.ToString("yyyy-MM-dd-HH-mm-ss");
             TOTP = GenerateTOTP(); // Generate and set the TOTP
            // var url = $"http://172.26.160.1%3A8077?timestamp={timestamp}&otp={TOTP}";web-echeckin.azurewebsites.net
-           // var url = "https://localhost:44302/Registration/Index";
-            var url = $"https://webecheckin.azurewebsites.net/Registration/Index";
+            var url = "https://localhost:44302/Registration/Index";
+            //var url = $"https://webecheckin.azurewebsites.net/Registration/Index";
             return url;
         }
 
