@@ -14,10 +14,10 @@ namespace FASSET.eCheckIn_v1.Controllers
     public class QRCodeController : Controller
     {
         // GET: QRCode
-        public ActionResult Index()
+        public ActionResult Index(string geoLocation)
         {
             var model = new QRCodeModel();
-            var qrCodeContent = model.GetQRCodeContent();
+            var qrCodeContent = model.GetQRCodeContent(geoLocation);
 
             // Check if the QR code is expired or TOTP is invalid
             var expirationTimestamp = Request.QueryString["timestamp"];

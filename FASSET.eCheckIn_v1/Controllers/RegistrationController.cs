@@ -42,11 +42,17 @@ namespace FASSET.eCheckIn_v1.Controllers
         [HttpPost]
         public ActionResult SubmitRegistration(RegistrationModel model)
         {
-            model.qrCodeImgUrl = Request.Form["qrCodeImgUrl"];
-            model.QRCodeTotp = Request.Form["QRCodeTotp"];
+            model.GeoLocation = Request.Form["GeoLocation"];
+            QRCodeModel qrCodeModel = new QRCodeModel();
+
+            model.qrCodeImgUrl = qrCodeModel.GetQRCodeContent(model.GeoLocation);
+            model.QRCodeTotp = qrCodeModel.TOTP;
+
+            //model.qrCodeImgUrl = Request.Form["qrCodeImgUrl"];
+           // model.QRCodeTotp = Request.Form["QRCodeTotp"];
             model.userTotp = Request.Form["userTotp"];
             model.Employee = Request.Form["Employee"];
-            model.GeoLocation = Request.Form["GeoLocation"];
+            //model.GeoLocation = Request.Form["GeoLocation"];
 
             int res = _dbAccess.SaveRegistration(model);
 

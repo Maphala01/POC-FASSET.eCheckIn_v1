@@ -2,6 +2,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Web;
+using static QRCoder.PayloadGenerator;
 
 namespace FASSET.eCheckIn_v1.Models
 {
@@ -11,15 +12,16 @@ namespace FASSET.eCheckIn_v1.Models
         public string QRCodeImageUrl { get; set; }
         public string TOTP { get; private set; } // Added TOTP property
 
-        public string GetQRCodeContent()
+        public string GetQRCodeContent(string geoLocation)
         {
             // Generates a unique URL with expiration time
             var expirationTime = DateTime.UtcNow.AddSeconds(30); // QR code expires in 30 seconds
             var timestamp = expirationTime.ToString("yyyy-MM-dd-HH-mm-ss");
             TOTP = GenerateTOTP(); // Generate and set the TOTP
-           // var url = $"http://172.26.160.1%3A8077?timestamp={timestamp}&otp={TOTP}";web-echeckin.azurewebsites.net
-            //var url = "https://localhost:44302/Registration/Index";
-            var url = $"https://webecheckin.azurewebsites.net/Registration/Index";
+                                   // var url = $"http://172.26.160.1%3A8077?timestamp={timestamp}&otp={TOTP}";web-echeckin.azurewebsites.net
+                                   //var url = "https://localhost:44302/Registration/Index";
+            //var url = $"https://localhost:44302/Registration/Index?timestamp={timestamp}&geolocation={geoLocation}";
+            var url = $"https://webecheckin.azurewebsites.net/Registration/Index?timestamp={timestamp}&geolocation={geoLocation}";
             return url;
         }
 
