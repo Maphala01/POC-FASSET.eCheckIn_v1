@@ -46,10 +46,10 @@ namespace FASSET.eCheckIn_v1.Controllers
             QRCodeModel qrCodeModel = new QRCodeModel();
 
             model.qrCodeImgUrl = qrCodeModel.GetQRCodeContent(model.GeoLocation);
-            model.QRCodeTotp = qrCodeModel.TOTP;
+            //model.QRCodeTotp = qrCodeModel.TOTP;
 
             //model.qrCodeImgUrl = Request.Form["qrCodeImgUrl"];
-           // model.QRCodeTotp = Request.Form["QRCodeTotp"];
+            // model.QRCodeTotp = Request.Form["QRCodeTotp"];
             model.userTotp = Request.Form["userTotp"];
             model.Employee = Request.Form["Employee"];
             //model.GeoLocation = Request.Form["GeoLocation"];
