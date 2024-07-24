@@ -49,14 +49,14 @@
         else
         {
             <h2>Scan the QR Code to visit FASSET<span>&reg</span> eCheck-In <span id="date-display"></span></h2>
-            <img src="@Model.QRCodeImageUrl" alt="Daily QR Code" />
+            <img class="qr-code" src="@Model.QRCodeImageUrl" alt="Daily QR Code" />
             <h2>Your OTP: @Model.TOTP</h2>
         }
     </div>
 
     <!-- Timer display -->
     <div style="text-align:center;">
-        <h2>Time left: <span id="timer">30</span> seconds</h2>
+        <h2>Time left: <span id="timer">50</span> seconds</h2>
     </div>
 </body>
 </html>

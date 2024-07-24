@@ -1,11 +1,5 @@
-﻿
-@model FASSET.eCheckIn_v1.Models.RegistrationModel
+﻿<!--
 
-@{
-    Layout = "~/Views/Shared/_Layout.cshtml";
-    var departmentsList = ViewBag.Departments as List<FASSET.eCheckIn_v1.Models.Department>;
-    var employeesList = ViewBag.Employees as List<FASSET.eCheckIn_v1.Models.Employee>;
-}
 
 <!DOCTYPE html>
 <html>
@@ -43,14 +37,7 @@
                 <label class="label-department" for="department"><span class="content-department">DEPARTMENT</span></label>
                 <datalist id="departments">
                     <option value="">Select a Department</option>
-                    @if (departmentsList != null)
-                    {
-                        var departmentList = departmentsList.Take(5);
-                        foreach (var department in departmentList)
-                        {
-                            <option value="@department.DepartmentName">@department.DepartmentName</option>
-                        }
-                    }
+   
                 </datalist>
             </div>
 
@@ -59,14 +46,7 @@
                 <label class="label-employee" for="employee"><span class="content-employee">EMPLOYEE</span></label>
                 <datalist id="employees">
                     <option value="">Select an Employee</option>
-                    @if (employeesList != null)
-                    {
-                        var employeeList = employeesList.Take(5);
-                        foreach (var employee in employeeList)
-                        {
-                            <option value="@employee.EmployeeName">@employee.EmployeeName</option>
-                        }
-                    }
+
                 </datalist>
             </div>
 
@@ -74,22 +54,20 @@
             <input type="hidden" name="GeoLocation" id="geoLocationDisplay">
             <input type="hidden" name="Timestamp" id="timestampDisplay">
 
-            <button type="button" onclick="processOtp()" id="submit-button">Submit</button>
+            <button type="button" onclick="processOtp()" id="submit-button">Submit</button>-->
+@*@Html.HiddenFor(m => m.qrCodeImgUrl)
+    @Html.HiddenFor(m => m.QRCodeTotp)*@
+@*<input type="hidden" name="GeoLocation" id="GeoLocation">
 
+    <input type="hidden" name="GeoLocation">
+    <button type="button" onclick="processOtp()" id="submit-button">Submit</button>*@
+<!--@Html.Hidden("qrCodeImgUrl", TempData["QRCodeImageUrl"])
+@Html.Hidden("QRCodeTotp", TempData["TOTP"])-->
+@*@Html.Hidden("GeoLocation", TempData["geoLocationDisplay1"])
+    @Html.Hidden("Timestamp", TempData["timestampDisplay"])*@
 
-            @*@Html.HiddenFor(m => m.qrCodeImgUrl)
-        @Html.HiddenFor(m => m.QRCodeTotp)*@
-            @*<input type="hidden" name="GeoLocation" id="GeoLocation">
-
-        <input type="hidden" name="GeoLocation">
-        <button type="button" onclick="processOtp()" id="submit-button">Submit</button>*@
-            @Html.Hidden("qrCodeImgUrl", TempData["QRCodeImageUrl"])
-            @Html.Hidden("QRCodeTotp", TempData["TOTP"])
-            @*@Html.Hidden("GeoLocation", TempData["geoLocationDisplay1"])
-            @Html.Hidden("Timestamp", TempData["timestampDisplay"])*@
-
-            @*<button type="submit" id="submit-button" onclick="processOtp()">Submit</button>*@
-        </form>
+@*<button type="submit" id="submit-button" onclick="processOtp()">Submit</button>*@
+<!--</form>
         </div>
     </div>
 
@@ -157,7 +135,22 @@
     });
 
         function moveToNext(currentInput, event, isLast) {
-            if (currentInput.value.length >= 1) {
+            const isBackspace = event.key === 'Backspace';
+            const isDelete = event.key === 'Delete';
+
+            if (isBackspace || isDelete) {
+                if (currentInput.value.length === 0) {
+                    // Move to previous input if backspace/delete is pressed and the current input is empty
+                    let prevInput = currentInput.previousElementSibling;
+                    while (prevInput && prevInput.tagName !== 'INPUT') {
+                        prevInput = prevInput.previousElementSibling;
+                    }
+                    if (prevInput && prevInput.classList.contains('otp-input')) {
+                        prevInput.focus();
+                        prevInput.value = ''; // Optionally clear the previous input
+                    }
+                }
+            } else if (currentInput.value.length >= 1) {
                 if (isLast) {
                     document.getElementById('department').focus();
                 } else {
@@ -251,6 +244,208 @@
             var timestamp = new Date().toISOString();
             document.getElementById('timestampDisplay').value = timestamp;
 
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    var latitude = position.coords.latitude;
+                    var longitude = position.coords.longitude;
+                    var geoLocation = latitude + ',' + longitude;
+                    document.getElementById('geoLocationDisplay').value = geoLocation;
+                    document.querySelector('.Form').submit();
+                }, function (error) {
+                    console.error('Error getting geolocation: ' + error.message);
+                    document.getElementById('geoLocationDisplay').value = "0,0";
+                    document.querySelector('.Form').submit();
+                });
+            } else {
+                console.error('Geolocation is not supported by this browser.');
+                document.getElementById('geoLocationDisplay').value = "0,0";
+                document.querySelector('.Form').submit();
+            }
+        }
+    </script>
+</body>
+</html>-->
+@model FASSET.eCheckIn_v1.Models.RegistrationModel
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var departmentsList = ViewBag.Departments as List<FASSET.eCheckIn_v1.Models.Department>;
+    var employeesList = ViewBag.Employees as List<FASSET.eCheckIn_v1.Models.Employee>;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title></title>
+    <link href="~/Content/StyleSheet.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet" />
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <img class="cld-responsive" alt="header-image" src="~/Content/FASSET_HD.jpg" />
+            <h1 class="form-title">FASSET eCheck-In</h1>
+            <h2 class="form-title">@DateTime.Now.ToString("yyyy-MM-dd")</h2>
+            @if (ViewBag.Message != null)
+            {
+                <div class="alert alert-success">@ViewBag.Message</div>
+            }
+            <form class="Form" action="@Url.Action("SubmitRegistration", "Registration")" method="post" onsubmit="processOtp()">
+                <h5 style="text-align:center">
+                    ENTER TOTP
+                </h5>
+                <div class="otp-container">
+                    @for (int i = 0; i < 5; i++)
+                    {
+                        <input required class="otp-input" maxlength="1" name="otp[]" type="text" inputmode="numeric" pattern="[0-9]*" oninput="moveToNext(this, event, @i == 4)" onkeydown="handleBackspace(this, event)">
+                    }
+                </div>
+
+                <div class="input-animated">
+                    <input placeholder="DEPARTMENT" required="" list="departments" name="Department" id="department" type="text">
+                    <label class="label-department" for="department"><span class="content-department">DEPARTMENT</span></label>
+                    <datalist id="departments">
+                        <option value="">Select a Department</option>
+                        @if (departmentsList != null)
+                        {
+                            var departmentList = departmentsList.Take(5);
+                            foreach (var department in departmentList)
+                            {
+                                <option value="@department.DepartmentName">@department.DepartmentName</option>
+                            }
+                        }
+                    </datalist>
+                </div>
+
+                <div class="input-animated">
+                    <input placeholder="EMPLOYEE" required="" list="employees" name="Employee" id="employee" type="text">
+                    <label class="label-employee" for="employee"><span class="content-employee">EMPLOYEE</span></label>
+                    <datalist id="employees">
+                        <option value="">Select an Employee</option>
+                        @if (employeesList != null)
+                        {
+                            var employeeList = employeesList.Take(5);
+                            foreach (var employee in employeeList)
+                            {
+                                <option value="@employee.EmployeeName">@employee.EmployeeName</option>
+                            }
+                        }
+                    </datalist>
+                </div>
+
+                <input type="hidden" name="GeoLocation" id="geoLocationDisplay">
+                <input type="hidden" name="Timestamp" id="timestampDisplay">
+
+                <button type="button" onclick="processOtp()" id="submit-button">Submit</button>
+
+                @Html.Hidden("qrCodeImgUrl", TempData["QRCodeImageUrl"])
+                @Html.Hidden("QRCodeTotp", TempData["TOTP"])
+            </form>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0/js/select2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#department').on('input', function () {
+                var inputVal = $(this).val();
+                if (inputVal.length > 0) {
+                    $.ajax({
+                        url: '@Url.Action("GetDepartments", "Registration")',
+                        type: 'GET',
+                        data: { term: inputVal },
+                        success: function (data) {
+                            var departmentList = $('#departments');
+                            departmentList.empty();
+                            departmentList.append('<option value="">Select a Department</option>');
+                            $.each(data, function (index, department) {
+                                departmentList.append('<option value="' + department.DepartmentName + '">' + department.DepartmentName + '</option>');
+                            });
+                        }
+                    });
+                }
+            });
+
+            $('#employee').on('input', function () {
+                var inputVal = $(this).val();
+                if (inputVal.length > 0) {
+                    $.ajax({
+                        url: '@Url.Action("GetEmployees", "Registration")',
+                        type: 'GET',
+                        data: { term: inputVal },
+                        success: function (data) {
+                            var employeeList = $('#employees');
+                            employeeList.empty();
+                            employeeList.append('<option value="">Select an Employee</option>');
+                            $.each(data, function (index, employee) {
+                                employeeList.append('<option value="' + employee.EmployeeName + '">' + employee.EmployeeName + '</option>');
+                            });
+                        }
+                    });
+                }
+            });
+
+            $('#department').on('change', function () {
+                $('#employee').focus();
+            });
+
+            $('#employee').on('change', function () {
+                $('#submit-button').focus();
+            });
+
+            $('.otp-input').on('input', function () {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+        });
+
+        function handleBackspace(currentInput, event) {
+            if (event.key === 'Backspace' && currentInput.value.length === 0) {
+                let prevInput = currentInput.previousElementSibling;
+                while (prevInput && prevInput.tagName !== 'INPUT') {
+                    prevInput = prevInput.previousElementSibling;
+                }
+                if (prevInput && prevInput.classList.contains('otp-input')) {
+                    prevInput.focus();
+                    prevInput.value = ''; // Optionally clear the previous input
+                }
+            }
+        }
+
+        function moveToNext(currentInput, event, isLast) {
+            if (currentInput.value.length >= 1) {
+                if (isLast) {
+                    document.getElementById('department').focus();
+                } else {
+                    let nextInput = currentInput.nextElementSibling;
+                    while (nextInput && nextInput.tagName !== 'INPUT') {
+                        nextInput = nextInput.nextElementSibling;
+                    }
+                    if (nextInput && nextInput.classList.contains('otp-input')) {
+                        nextInput.focus();
+                    }
+                }
+            }
+        }
+
+        function processOtp() {
+            var otp = "";
+            document.querySelectorAll('.otp-input').forEach(input => {
+                otp += input.value;
+            });
+            var hiddenOtp = document.createElement('input');
+            hiddenOtp.type = 'hidden';
+            hiddenOtp.name = 'userTotp';
+            hiddenOtp.value = otp;
+            document.querySelector('.Form').appendChild(hiddenOtp);
+
+            var timestamp = new Date().toISOString();
+            document.getElementById('timestampDisplay').value = timestamp;
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function (position) {
