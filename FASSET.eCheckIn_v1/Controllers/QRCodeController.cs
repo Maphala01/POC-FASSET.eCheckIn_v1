@@ -11,9 +11,11 @@ using System.IO;
 
 namespace FASSET.eCheckIn_v1.Controllers
 {
+    [NoCache]
     public class QRCodeController : Controller
     {
         // GET: QRCode
+        
         public ActionResult Index(string geoLocation)
         {
             var model = new QRCodeModel();
@@ -70,7 +72,7 @@ namespace FASSET.eCheckIn_v1.Controllers
             TempData["QRCodeImageUrl"] = model.QRCodeImageUrl;
             TempData["TOTP"] = model.TOTP;
             return View(model);
-            
+
         }
         private Bitmap AddLogoToQRCode(Bitmap qrCodeImage, Image logo)
         {

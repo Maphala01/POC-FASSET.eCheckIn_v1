@@ -126,6 +126,7 @@
     </Compile>
     <Compile Include="Models\QRCodeModel.cs" />
     <Compile Include="Models\RegistrationModel.cs" />
+    <Compile Include="NoCacheAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
