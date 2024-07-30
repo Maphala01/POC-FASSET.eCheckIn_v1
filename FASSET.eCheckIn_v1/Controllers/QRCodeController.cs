@@ -11,7 +11,7 @@ using System.IO;
 
 namespace FASSET.eCheckIn_v1.Controllers
 {
-    
+    [NoCache]
     public class QRCodeController : Controller
     {
         // GET: QRCode

@@ -5,6 +5,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="~/Content/site.css?v=@DateTime.Now.Ticks" />
+    <script src="~/Scripts/site.js?v=@DateTime.Now.Ticks"></script>
     <title>Daily QR Code</title>
     <script>
         // Function to update the timer every second
@@ -58,5 +60,6 @@
     <div style="text-align:center;">
         <h2>Time left: <span id="timer">45</span> seconds</h2>
     </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.8.3/modernizr.min.js"></script>
 </body>
 </html>
