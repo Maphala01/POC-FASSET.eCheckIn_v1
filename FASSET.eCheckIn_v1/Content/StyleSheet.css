@@ -24,6 +24,8 @@ html, body {
     height: 100%;
 }
 
+
+
 .container {
     height: 100vh; /* Use viewport height */
     display: flex;
