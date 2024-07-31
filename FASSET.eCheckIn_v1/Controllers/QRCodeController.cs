@@ -1,14 +1,13 @@
 ﻿using FASSET.eCheckIn_v1.Models;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
+using System.Drawing; // This imports System.Drawing.Point and System.Drawing.Size
 using System.Drawing.Imaging;
 using System.Linq;
 using System.Web;
 using QRCoder;
 using System.Web.Mvc;
 using System.IO;
-using System.Windows;
 
 namespace FASSET.eCheckIn_v1.Controllers
 {
@@ -50,12 +49,6 @@ namespace FASSET.eCheckIn_v1.Controllers
                     {
                         var combinedImage = AddLogoToQRCode(bitmap, logo);
 
-                        //using (var stream = new MemoryStream())
-                        //{
-                        //    combinedImage.Save(stream, ImageFormat.Png);
-                        //    var qrCodeBase64 = Convert.ToBase64String(stream.ToArray());
-                        //    model.QRCodeImageUrl = $"data:image/png;base64,{qrCodeBase64}";
-                        //}
                         string fileName = $"{DateTime.UtcNow:yyyyMMddHHmmss}.png";
                         string filePath = Server.MapPath($"~/Content/QRCodeImages/{fileName}");
                         // Ensure the directory exists and has write permissions
@@ -75,18 +68,18 @@ namespace FASSET.eCheckIn_v1.Controllers
             TempData["QRCodeImageUrl"] = model.QRCodeImageUrl;
             TempData["TOTP"] = model.TOTP;
             return View(model);
-
         }
+
         private Bitmap AddLogoToQRCode(Bitmap qrCodeImage, Image logo)
         {
             int logoSize = qrCodeImage.Width / 5; // Adjust size as needed
-            var logoPosition = new Point((qrCodeImage.Width - logoSize) / 2, (qrCodeImage.Height - logoSize) / 2);
+            var logoPosition = new System.Drawing.Point((qrCodeImage.Width - logoSize) / 2, (qrCodeImage.Height - logoSize) / 2); // Fully qualify Point
 
             var combinedImage = new Bitmap(qrCodeImage.Width, qrCodeImage.Height, PixelFormat.Format32bppArgb);
             using (var graphics = Graphics.FromImage(combinedImage))
             {
-                graphics.DrawImage(qrCodeImage, new Point(0, 0));
-                graphics.DrawImage(logo, new Rectangle(logoPosition, new Size(logoSize, logoSize)));
+                graphics.DrawImage(qrCodeImage, new System.Drawing.Point(0, 0)); // Fully qualify Point
+                graphics.DrawImage(logo, new Rectangle(logoPosition, new System.Drawing.Size(logoSize, logoSize))); // Fully qualify Size
             }
 
             return combinedImage;
