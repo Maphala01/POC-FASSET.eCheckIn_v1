@@ -5,8 +5,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" type="text/css" href="~/Content/site.css?v=@DateTime.Now.Ticks" />
-    <script src="~/Scripts/site.js?v=@DateTime.Now.Ticks"></script>
+    <link rel="stylesheet" type="text/css" href="~/Content/Site.css?v=@DateTime.Now.Ticks" />
+    <link href="~/Content/Site.css" rel="stylesheet" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="~/Content/Site.css.js?v=@DateTime.Now.Ticks"></script>
     <title>Daily QR Code</title>
     <script>
         // Function to update the timer every second
@@ -63,8 +65,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.8.3/modernizr.min.js"></script>
     <script>
         $.ajax({
-            cache: false
-            //rest of your ajax setup
+            cache: false,
+            // Add any other AJAX settings here
+            url: "/your-endpoint", // Add the appropriate URL
+            method: "GET", // or POST depending on your requirements
+            success: function (data) {
+                // Handle successful response
+            },
+            error: function (xhr, status, error) {
+                // Handle errors
+            }
         });
     </script>
 </body>
