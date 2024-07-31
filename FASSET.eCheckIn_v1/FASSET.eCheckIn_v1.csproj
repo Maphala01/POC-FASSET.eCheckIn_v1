@@ -146,6 +146,7 @@
     <Content Include="Content\bootstrap.min.css" />
     <Content Include="Content\bootstrap.rtl.css" />
     <Content Include="Content\bootstrap.rtl.min.css" />
+    <Content Include="Content\download.ico" />
     <Content Include="Content\download.jpg" />
     <Content Include="Content\FASSET_HD.jpg" />
     <Content Include="Content\StyleSheet.css" />

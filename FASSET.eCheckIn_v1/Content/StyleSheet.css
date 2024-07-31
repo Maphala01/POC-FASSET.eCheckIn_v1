@@ -291,3 +291,69 @@ button {
 .toast-message {
     font-size: 44px !important; /* Adjust the message font size if needed */
 }
+@media only screen and (min-device-width: 820px) and (max-device-width: 1180px) and (-webkit-min-device-pixel-ratio: 2) {
+    .container {
+        height: 90vh; /* Adjust height if needed */
+    }
+
+    .content {
+        width: 80%; /* Adjust width for iPad */
+        max-width: 600px; /* Increase max-width */
+        padding: 30px; /* Increase padding */
+    }
+
+    .form-title {
+        font-size: 2rem; /* Increase font size */
+    }
+
+    input, textarea {
+        font-size: 1.25rem; /* Increase input font size */
+    }
+
+    .Form .input-animated input {
+        padding: 1.5rem 1rem 1rem 1rem; /* Adjust padding */
+    }
+
+    .Form .input-animated label {
+        border-bottom: 2px solid var(--primary-dark); /* Increase border thickness */
+    }
+
+        .Form .input-animated label span {
+            bottom: 1rem; /* Adjust label positioning */
+        }
+
+    .Form .input-animated input:focus + label span,
+    .Form .input-animated input:valid + label span,
+    .Form .input-animated input:not(:placeholder-shown) + label span {
+        font-size: 1rem; /* Adjust label font size on focus */
+    }
+
+    .otp-input {
+        font-size: 2rem; /* Increase OTP input font size */
+    }
+
+    .MainQrCode {
+        width: 250px; /* Adjust QR code size */
+        height: auto; /* Maintain aspect ratio */
+    }
+
+    .toast {
+        font-size: 48px !important; /* Adjust toast font size */
+    }
+
+    .toast-message {
+        font-size: 48px !important; /* Adjust toast message font size */
+    }
+
+    /* Additional styles for larger screen sizes */
+    @media (min-width: 1024px) {
+        .beside {
+            flex-direction: row; /* Arrange items side by side for larger screens */
+            gap: 15px; /* Increase gap between items */
+        }
+
+        input[type=number], select {
+            width: calc(50% - 15px); /* Adjust width for larger screens */
+        }
+    }
+}

@@ -5,10 +5,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <link rel="stylesheet" type="text/css" href="~/Content/Site.css?v=@DateTime.Now.Ticks" />
     <link href="~/Content/Site.css" rel="stylesheet" />
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="~/Content/Site.css.js?v=@DateTime.Now.Ticks"></script>
+    @*<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>*@
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    @*<script src="~/Content/Site.css.js?v=@DateTime.Now.Ticks"></script>*@
     <title>Daily QR Code</title>
     <script>
         // Function to update the timer every second
@@ -52,9 +57,9 @@
         }
         else
         {
-            <h2>Scan the QR Code to visit FASSET<span>&reg</span> eCheck-In <span id="date-display"></span></h2>
+            <h2>Scan the QR Code to visit FASSET<span>&reg</span> Echeck-In <span id="date-display"></span></h2>
             <img class="qr-code" src="@Model.QRCodeImageUrl" alt="Daily QR Code" />
-            <h1 style="font-size:5em">Your TOTP: @Model.TOTP</h1>
+            <h1 style="font-size:5em">Your OTP: @Model.TOTP</h1>
         }
     </div>
 
@@ -66,15 +71,7 @@
     <script>
         $.ajax({
             cache: false,
-            // Add any other AJAX settings here
-            url: "/your-endpoint", // Add the appropriate URL
-            method: "GET", // or POST depending on your requirements
-            success: function (data) {
-                // Handle successful response
-            },
-            error: function (xhr, status, error) {
-                // Handle errors
-            }
+           
         });
     </script>
 </body>
