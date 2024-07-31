@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FASSET&reg - Echeck-In</title>
     <link rel="icon" href="~/Content/download.ico" type="image/x-icon" />
-    @*<link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet" />*@
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet" />
-
+    <link href="~/Content/toastr.min.css" rel="stylesheet" />
 
 
     @Styles.Render("~/Content/css")
@@ -22,9 +20,8 @@
                 <p>&copy; @DateTime.Now.Year - FASSET e-CheckIn</p>
             </footer>*@
     </div>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-
+    <script src="~/Content/jquery-3.6.0.min.js"></script>
+    <script src="~/Content/toastr.min.js"></script>
 
     @if (TempData["CheckIn-Success"] != null)
     {

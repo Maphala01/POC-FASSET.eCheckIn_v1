@@ -8,16 +8,17 @@ using System.Web;
 using QRCoder;
 using System.Web.Mvc;
 using System.IO;
+using System.Windows;
 
 namespace FASSET.eCheckIn_v1.Controllers
 {
     [NoCache]
+    [OutputCache(Duration = 8, VaryByParam = "none", NoStore = true)]
     public class QRCodeController : Controller
     {
         // GET: QRCode
         [NoCache]
-        [OutputCache(Duration = 0, VaryByParam = "none", NoStore = true)] // Added OutputCache attribute
-
+        [OutputCache(Duration = 8, VaryByParam = "none", NoStore = true)] // Added OutputCache attribute
         public ActionResult Index(string geoLocation)
         {
             var model = new QRCodeModel();
