@@ -6,12 +6,12 @@ public class NoCacheAttribute : ActionFilterAttribute
 {
     public override void OnResultExecuting(ResultExecutingContext filterContext)
     {
-        filterContext.HttpContext.Response.Cache.SetExpires(DateTime.UtcNow.AddDays(-1));
-        filterContext.HttpContext.Response.Cache.SetValidUntilExpires(false);
-        filterContext.HttpContext.Response.Cache.SetRevalidation(HttpCacheRevalidation.AllCaches);
-        filterContext.HttpContext.Response.Cache.SetCacheability(HttpCacheability.NoCache);
-        filterContext.HttpContext.Response.Cache.SetNoStore();
-
+        var cache = filterContext.HttpContext.Response.Cache;
+        cache.SetExpires(DateTime.UtcNow.AddDays(-1));
+        cache.SetValidUntilExpires(false);
+        cache.SetRevalidation(HttpCacheRevalidation.AllCaches);
+        cache.SetCacheability(HttpCacheability.NoCache);
+        cache.SetNoStore();
         base.OnResultExecuting(filterContext);
     }
 }
