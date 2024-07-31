@@ -16,6 +16,7 @@ namespace FASSET.eCheckIn_v1.Controllers
     {
         // GET: QRCode
         [NoCache]
+        [OutputCache(Duration = 0)]
         public ActionResult Index(string geoLocation)
         {
             var model = new QRCodeModel();
