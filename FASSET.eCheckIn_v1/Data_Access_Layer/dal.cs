@@ -114,7 +114,7 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
-                var command = new SqlCommand("SELECT Name FROM Employees WHERE Name LIKE @term ORDER BY Name ASC", connection);
+                var command = new SqlCommand("SELECT Name FROM Employee WHERE Name LIKE @term ORDER BY Name ASC", connection);
                 command.Parameters.AddWithValue("@term", "%" + term + "%");
                 var reader = command.ExecuteReader();
 
