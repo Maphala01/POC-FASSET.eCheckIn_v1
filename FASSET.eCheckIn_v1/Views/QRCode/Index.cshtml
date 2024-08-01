@@ -71,7 +71,16 @@
         $.ajax({
             cache: false,
            
-        });
+            function reloadPageAfter45Seconds() {
+                setTimeout(() => {
+            window.location.reload(true);
+        }, 45000); // 45000 milliseconds = 45 seconds
+        }
+
+        // Call the function to set the timer
+        reloadPageAfter45Seconds();
+        window.location.reload(true); // Forces the browser to reload the page from the server
+
     </script>
 </body>
 </html>
