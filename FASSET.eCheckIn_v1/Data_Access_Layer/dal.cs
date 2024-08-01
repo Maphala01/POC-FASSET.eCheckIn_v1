@@ -75,7 +75,7 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
-                var command = new SqlCommand("SELECT Name FROM Employees ORDER BY Name ASC", connection);
+                var command = new SqlCommand("SELECT Name FROM Employee ORDER BY Name ASC", connection);
                 var reader = command.ExecuteReader();
 
                 var employees = new List<Employee>();
