@@ -30,8 +30,8 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
                 sql_cmd.Parameters.AddWithValue("@Name", model.Employee);
                 sql_cmd.Parameters.AddWithValue("@Department", model.Department);
                 sql_cmd.Parameters.AddWithValue("@QRCodeImageUrl", model.qrCodeImgUrl);
-                sql_cmd.Parameters.AddWithValue("@TOTP", model.QRCodeTotp);
-                sql_cmd.Parameters.AddWithValue("@UserTOTP", model.userTotp);
+                //sql_cmd.Parameters.AddWithValue("@TOTP", model.QRCodeTotp);
+                //sql_cmd.Parameters.AddWithValue("@UserTOTP", model.userTotp);
                 sql_cmd.Parameters.AddWithValue("@GeoLocation", model.GeoLocation);
                 sql_cmd.Parameters.AddWithValue("@TrnsNm", "CheckInEmployee");
                 SqlParameter outputParam = new SqlParameter("@IsVld", SqlDbType.Int)
