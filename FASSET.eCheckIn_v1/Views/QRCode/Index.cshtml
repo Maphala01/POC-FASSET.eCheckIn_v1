@@ -58,29 +58,24 @@
         {
             <h2>Scan the QR Code to visit FASSET<span>&reg</span> Echeck-In <span id="date-display"></span></h2>
             <img class="qr-code" src="@Model.QRCodeImageUrl" alt="Daily QR Code" />
-            <h1 style="font-size:5em">Your OTP: @Model.TOTP</h1>
+            @*<h1 style="font-size:5em">Your OTP: @Model.TOTP</h1>*@
         }
     </div>
 
     <!-- Timer display -->
     <div style="text-align:center;">
-        <h2>Time left: <span id="timer">45</span> seconds</h2>
+        @*<h2>Time left: <span id="timer">45</span> seconds</h2>*@
     </div>
     <script src="~/Content/modernizr.min.js"></script>
     <script>
-        $.ajax({
-            cache: false,
-           
-            function reloadPageAfter45Seconds() {
-                setTimeout(() => {
-            window.location.reload(true);
-        }, 45000); // 45000 milliseconds = 45 seconds
+        function reloadPageAfter45Seconds() {
+            setTimeout(() => {
+                window.location.reload(true); // Forces the browser to reload the page from the server
+            }, 45000); // 45000 milliseconds = 45 seconds
         }
 
         // Call the function to set the timer
         reloadPageAfter45Seconds();
-        window.location.reload(true); // Forces the browser to reload the page from the server
-
     </script>
 </body>
 </html>
