@@ -61,16 +61,33 @@ namespace FASSET.eCheckIn_v1.Controllers
             {
                 DateTime today = DateTime.Today;
                 string dayOfWeek = today.DayOfWeek.ToString();
-                string message = model.Employee + $" your Check-In is successful..Happy {dayOfWeek} !";
+                string message = model.Employee + $" you're checked in...Happy {dayOfWeek} !";
                 TempData["CheckIn-Success"] = message;
                 //ViewBag.Message = message;
                 //ViewBag.MessageType = "success";
                 return RedirectToAction("Index");
 
             }
-            else
+            else if (res == 0)
             {
-                ViewBag.Message = "Registration failed!";
+                ViewBag.Message = "You are checked in already!";
+                ViewBag.MessageType = "error";
+            }
+
+            else if(res == -1)
+            {
+                ViewBag.Message = "User does not exist!";
+                ViewBag.MessageType = "error";
+            }
+
+            else if (res == -2)
+            {
+                ViewBag.Message = "Department does not exist!";
+                ViewBag.MessageType = "error";
+            }
+            else if (res == -3)
+            {
+                ViewBag.Message = "Your checkIn was unsuccessful..contact ICT!";
                 ViewBag.MessageType = "error";
             }
 
