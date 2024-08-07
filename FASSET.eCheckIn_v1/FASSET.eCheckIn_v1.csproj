@@ -120,10 +120,12 @@
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\QRCodeController.cs" />
     <Compile Include="Controllers\RegistrationController.cs" />
+    <Compile Include="Controllers\Staff_GuestController.cs" />
     <Compile Include="Data_Access_Layer\dal.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="Models\Guest_StaffModel.cs" />
     <Compile Include="Models\QRCodeModel.cs" />
     <Compile Include="Models\RegistrationModel.cs" />
     <Compile Include="NoCacheAttribute.cs" />
@@ -155,6 +157,7 @@
     <Content Include="Content\select2.min.css" />
     <Content Include="Content\select2.min.js" />
     <Content Include="Content\StyleSheet.css" />
+    <Content Include="Content\StyleSheet_Guest_Staff.css" />
     <Content Include="Content\toastr.min.css" />
     <Content Include="Content\toastr.min.js" />
     <Content Include="favicon.ico" />
@@ -220,6 +223,8 @@
     <Content Include="Views\Home\Index.cshtml" />
     <Content Include="Views\QRCode\Index.cshtml" />
     <Content Include="Views\Registration\Index.cshtml" />
+    <Content Include="Views\Shared\_LayoutManual.cshtml" />
+    <Content Include="Views\Staff_Guest\Index.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

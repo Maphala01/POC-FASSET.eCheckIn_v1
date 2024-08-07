@@ -57,7 +57,7 @@ namespace FASSET.eCheckIn_v1.Controllers
             int res = _dbAccess.SaveRegistration(model);
 
 
-            if (res == 1)
+            if (res == 99)
             {
                 DateTime today = DateTime.Today;
                 string dayOfWeek = today.DayOfWeek.ToString();
