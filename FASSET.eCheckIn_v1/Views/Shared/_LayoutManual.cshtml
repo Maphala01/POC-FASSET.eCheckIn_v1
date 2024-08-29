@@ -5,10 +5,46 @@
     <meta name="viewport" content="width=device-width" />
     <title>@ViewBag.Title</title>
     <link href="~/Content/StyleSheet_Guest_Staff.css" rel="stylesheet" />
+    <link rel="icon" href="~/Content/download.ico" type="image/x-icon" />
+    <link href="~/Content/toastr.min.css" rel="stylesheet" />
+    <link href="~/Content/select2.min.css" rel="stylesheet" />
+    <script src="~/Content/select2.min.js"></script>
 </head>
 <body>
     <div>
         @RenderBody()
     </div>
-</body>
+
+    <script src="~/Content/jquery-3.6.0.min.js"></script>
+    <script src="~/Content/toastr.min.js"></script>
+
+    <script src="~/Content/jquery-3.6.0.min.js"></script>
+    <script src="~/Content/toastr.min.js"></script>
+
+    @if (TempData["CheckIn-Success"] != null)
+    {
+        <script>
+        $(document).ready(function () {
+            toastr.success('@TempData["CheckIn-Success"]');
+        });
+
+        toastr.options = {
+            'closeButton': false,
+            'debug': false,
+            'newestOnTop': false,
+            'progressBar': true,
+            'positionClass': 'toast-top-full-width',
+            'preventDuplicates': false,
+            'showDuration': '1000',
+            'hideDuration': '1000',
+            'timeOut': '5000',
+            'extendedTimeOut': '1000',
+            'showEasing': 'swing',
+            'hideEasing': 'linear',
+            'showMethod': 'fadeIn',
+            'hideMethod': 'slideUp',
+        }
+        </script>
+    }
+    </body>
 </html>

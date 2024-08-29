@@ -156,6 +156,8 @@
     <Content Include="Content\modernizr.min.js" />
     <Content Include="Content\select2.min.css" />
     <Content Include="Content\select2.min.js" />
+    <Content Include="Content\Small_Fasset-.png" />
+    <Content Include="Content\Small_Fasset.png" />
     <Content Include="Content\StyleSheet.css" />
     <Content Include="Content\StyleSheet_Guest_Staff.css" />
     <Content Include="Content\toastr.min.css" />

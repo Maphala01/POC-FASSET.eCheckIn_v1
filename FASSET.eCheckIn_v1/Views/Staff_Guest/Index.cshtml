@@ -1,61 +1,269 @@
-﻿
+﻿@model FASSET.eCheckIn_v1.Models.Guest_StaffModel
 @{
-    ViewBag.Title = "Index";
     Layout = "~/Views/Shared/_LayoutManual.cshtml";
+    var departmentsList = ViewBag.Departments as List<FASSET.eCheckIn_v1.Models.Department_2>;
+    var employeesList = ViewBag.Employees as List<FASSET.eCheckIn_v1.Models.Employee_2>;
 }
 
-<div class="cont">
-    <div class="form sign-in">
-        <h2>Welcome back,</h2>
-        <label>
-            <span>Email</span>
-            <input type="email" />
-        </label>
-        <label>
-            <span>Password</span>
-            <input type="password" />
-        </label>
-        <p class="forgot-pass">Forgot password?</p>
-        <button type="button" class="submit">Sign In</button>
-        <button type="button" class="fb-btn">Connect with <span>facebook</span></button>
-    </div>
-    <div class="sub-cont">
-        <div class="img">
-            <div class="img__text m--up">
-                <h2>New here?</h2>
-                <p>Sign up and discover great amount of new opportunities!</p>
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta name="viewport" content="width=device-width" />
+        <title>FASSET - EcheckIn Form &reg;</title>
+        <link href="~/Content/select2.min.css" rel="stylesheet" />
+        <link href="~/Content/toastr.min.css" rel="stylesheet" />
+    </head>
+    <body>
+        <h1 class="MainHead">FASSET Echeck-In&reg</h1>
+        <div class="container" id="container">
+            <div class="form-container sign-up-container">
+                <form class="Form" action="@Url.Action("SubmitRegistration", "Staff_Guest")" method="post">
+                    <h1>GUEST CHECK-IN</h1>
+                    <div class="input-animated">
+                        <input placeholder="REPRESENTING CAPACITY" required="" list="capacities" name="Capacity" id="capacity" type="text">
+                        <label class="label-capacity" for="capacity"><span class="content-department"></span></label>
+                        <datalist id="capacities">
+                            <option value="">Select Representing capacity</option>
+                        </datalist>
+                    </div>
+                    <input type="text" placeholder="COMPANY" autocomplete="off" />
+                    <input type="email" placeholder="NAME" autocomplete="off" />
+                    <input type="email" placeholder="EMAIL" autocomplete="off" />
+                    <div class="input-animated">
+                        <input type="text" autocomplete="off">
+                        <datalist id="">
+                            <option value="">Select a Department</option>
+                        </datalist>
+                    </div>
+                    <button>SUBMIT</button>
+                </form>
             </div>
-            <div class="img__text m--in">
-                <h2>One of us?</h2>
-                <p>If you already has an account, just sign in. We've missed you!</p>
+            <div class="form-container sign-in-container">
+                <form class="Form" action="@Url.Action("SubmitRegistration", "Staff_Guest")" method="post">
+                    <h1>STAFF CHECK-IN</h1>
+                    <div class="input-animated">
+                        <input placeholder="DEPARTMENT" required="" list="departments" name="Department" id="department" type="text" autocomplete="off">
+                        <datalist id="departments">
+                            <option value="">Select a Department</option>
+                            @if (departmentsList != null)
+                            {
+                                var departmentList = departmentsList.Take(5);
+                                foreach (var department in departmentList)
+                                {
+                                    <option value="@department.DepartmentName">@department.DepartmentName</option>
+                                }
+                            }
+                        </datalist>
+
+                    </div>
+
+                    <div class="input-animated">
+                        <input placeholder="EMPLOYEE" required="" list="employees" name="Employee" id="employee" type="text" autocomplete="off">
+                        @*<label class="label-employee" for="employee"><span class="content-employee">EMPLOYEE</span></label>*@
+                        <datalist id="employees">
+                            <option value="">Select an Employee</option>
+                            @if (employeesList != null)
+                            {
+                                var employeeList = employeesList.Take(5);
+                                foreach (var employee in employeeList)
+                                {
+                                    <option value="@employee.EmployeeName">@employee.EmployeeName</option>
+                                }
+                            }
+                        </datalist>
+                    </div>
+
+                    <input type="hidden" name="GeoLocation" id="geoLocationDisplay">
+                    <input type="hidden" name="Timestamp" id="timestampDisplay">
+
+                    <button type="submit" onclick="processOtp()" id="submit-button">Submit</button>
+                </form>
             </div>
-            <div class="img__btn">
-                <span class="m--up">Sign Up</span>
-                <span class="m--in">Sign In</span>
+
+            <div class="overlay-container">
+                <div class="overlay">
+                    <div class="overlay-panel overlay-left">
+                        <img class="pic_pad" src="~/Content/Small_Fasset-.png" />
+                        <h1>
+                            Welcome, Back Colleague
+                        </h1>
+                        <p class="welcomeP">
+                            Nice to see you again. Please check in to start your workday.
+                        </p>
+                        <button class="ghost" id="signIn">FASSET Staff</button>
+                    </div>
+                    <div class="overlay-panel overlay-right">
+                        <img class="pic_pad" src="~/Content/Small_Fasset-.png" />
+                        <h1>
+                            Welcome to FASSET
+                        </h1>
+                        <p class="welcomeP">
+                            Please check in, so you may assist us in assisting you
+                        </p>
+                        <button class="ghost" id="signUp">GUEST</button>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="form sign-up">
-            <h2>Time to feel like home,</h2>
-            <label>
-                <span>Name</span>
-                <input type="text" />
-            </label>
-            <label>
-                <span>Email</span>
-                <input type="email" />
-            </label>
-            <label>
-                <span>Password</span>
-                <input type="password" />
-            </label>
-            <button type="button" class="submit">Sign Up</button>
-            <button type="button" class="fb-btn">Join with <span>facebook</span></button>
-        </div>
-    </div>
-</div>
-<script>
-    document.querySelector('.img__btn').addEventListener('click', function () {
-        document.querySelector('.cont').classList.toggle('s--signup');
-    });
-</script>
+        <footer>
+            <p>
+                Created with <i class="fa fa-heart"></i> by
+                <a target="_blank" href="www.fasset.org.za">FASSET&reg; - 2024</a>
+            </p>
+        </footer>
+
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="~/Content/select2.min.js"></script>
+        <script src="~/Content/toastr.min.js"></script>
+
+        <script>
+
+            $(document).ready(function() {
+            // Event listener for department input
+                $('#department').on('input', function() {
+                    var inputVal = $(this).val();
+                    if (inputVal.length >= 2) {  // Trigger AJAX only if input has 2 or more characters
+                        $.ajax({
+                            url: '@Url.Action("GetDepartments", "Registration")',
+                            type: 'GET',
+                            data: { term: inputVal },
+                            success: function(data) {
+                                var departmentList = $('#departments'); // Ensure this matches the datalist ID in your form
+                                departmentList.empty();
+                                departmentList.append('<option value="">Select a Department</option>');
+                                if (data.length > 0) {
+                                    $.each(data, function(index, department) {
+                                        departmentList.append('<option value="' + department.DepartmentName + '">' + department.DepartmentName + '</option>');
+                                    });
+                                } else {
+                                    departmentList.append('<option value="No results found">No results found</option>');
+                                }
+                            }
+                        });
+                    } else {
+                        $('#departments').empty(); // Clear the datalist if input is less than 2 characters
+                    }
+                });
+
+                // Event listener for employee input
+                $('#employee').on('input', function() {
+                    var inputVal = $(this).val();
+                    if (inputVal.length >= 3) {  // Trigger AJAX only if input has 3 or more characters
+                        $.ajax({
+                            url: '@Url.Action("GetEmployees", "Registration")',
+                            type: 'GET',
+                            data: { term: inputVal },
+                            success: function(data) {
+                                var employeeList = $('#employees');
+                                employeeList.empty();
+                                employeeList.append('<option value="">Select an Employee</option>');
+                                if (data.length > 0) {
+                                    $.each(data, function(index, employee) {
+                                        employeeList.append('<option value="' + employee.EmployeeName + '">' + employee.EmployeeName + '</option>');
+                                    });
+                                } else {
+                                    employeeList.append('<option value="No results found">No results found</option>');
+                                }
+                            }
+                        });
+                    } else {
+                        $('#employees').empty(); // Clear the datalist if input is less than 3 characters
+                    }
+                });
+
+                $('#department').on('change', function () {
+                    
+                    $('#employee').focus();
+                });
+
+                $('#employee').on('change', function () {
+                    $('#submit-button').focus();
+                    processOtp(); // Trigger processOtp when employee is selected
+                });
+
+            });
+
+            function filterOptions(inputElement, dataListId) {
+                const filterValue = inputElement.value.toLowerCase();
+                const dataList = document.getElementById(dataListId);
+                const options = dataList.querySelectorAll('option');
+
+                options.forEach(option => {
+                    if (option.value.toLowerCase().includes(filterValue)) {
+                        option.style.display = '';
+                    } else {
+                        option.style.display = 'none';
+                    }
+                });
+            }
+
+            document.getElementById('department').addEventListener('input', function () {
+                filterOptions(this, 'departments');
+            });
+
+            document.getElementById('employee').addEventListener('input', function () {
+                filterOptions(this, 'employees');
+            });
+
+
+
+            const signUpButton = document.getElementById('signUp');
+            const signInButton = document.getElementById('signIn');
+            const container = document.getElementById('container');
+
+            signUpButton.addEventListener('click', () => {
+                container.classList.add("right-panel-active");
+            });
+
+            signInButton.addEventListener('click', () => {
+                container.classList.remove("right-panel-active");
+            });
+
+            function processOtp() {
+                console.log("processOtp function triggered");
+
+                var otp = "";
+                document.querySelectorAll('.otp-input').forEach(input => {
+                    otp += input.value;
+                });
+                console.log("OTP generated:", otp);
+
+                var hiddenOtp = document.createElement('input');
+                hiddenOtp.type = 'hidden';
+                hiddenOtp.name = 'userTotp';
+                hiddenOtp.value = otp;
+                document.querySelector('.Form').appendChild(hiddenOtp);
+
+                var timestamp = new Date().toISOString();
+                console.log("Timestamp generated:", timestamp);
+                document.getElementById('timestampDisplay').value = timestamp;
+
+                if (navigator.geolocation) {
+                    console.log("Geolocation supported. Getting position...");
+                    navigator.geolocation.getCurrentPosition(function (position) {
+                        var latitude = position.coords.latitude;
+                        var longitude = position.coords.longitude;
+                        var geoLocation = latitude + ',' + longitude;
+                        console.log("Geolocation acquired:", geoLocation);
+                        document.getElementById('geoLocationDisplay').value = geoLocation;
+                       /* document.querySelector('.Form').submit();*/
+                    }, function (error) {
+                        console.error('Error getting geolocation: ' + error.message);
+                        document.getElementById('geoLocationDisplay').value = "0,0";
+                        /*document.querySelector('.Form').submit();*/
+                    });
+                } else {
+                    console.error('Geolocation is not supported by this browser.');
+                    document.getElementById('geoLocationDisplay').value = "0,0";
+                   /* document.querySelector('.Form').submit();*/
+                }
+            }
+
+
+
+
+        </script>
+    </body>
+    </html>
+
 
