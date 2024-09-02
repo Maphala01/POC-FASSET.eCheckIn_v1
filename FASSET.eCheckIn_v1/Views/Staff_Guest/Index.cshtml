@@ -3,41 +3,74 @@
     Layout = "~/Views/Shared/_LayoutManual.cshtml";
     var departmentsList = ViewBag.Departments as List<FASSET.eCheckIn_v1.Models.Department_2>;
     var employeesList = ViewBag.Employees as List<FASSET.eCheckIn_v1.Models.Employee_2>;
+    var capacitiesList = ViewBag.Capacities as List<FASSET.eCheckIn_v1.Models.Capacity>;
+    var titlesList = ViewBag.Titles as List<FASSET.eCheckIn_v1.Models.Title>;
+    var enquiresList = ViewBag.Enquiries as List<FASSET.eCheckIn_v1.Models.EnquiryType>;
 }
 
 <!DOCTYPE html>
     <html>
     <head>
-        <meta name="viewport" content="width=device-width" />
+        <meta name="viewport" content="width=device-width"/>
         <title>FASSET - EcheckIn Form &reg;</title>
-        <link href="~/Content/select2.min.css" rel="stylesheet" />
-        <link href="~/Content/toastr.min.css" rel="stylesheet" />
+        <link href="~/Content/select2.min.css" rel="stylesheet"/>
+        <link href="~/Content/toastr.min.css" rel="stylesheet"/>
     </head>
     <body>
+        
+
         <h1 class="MainHead">FASSET Echeck-In&reg</h1>
         <div class="container" id="container">
             <div class="form-container sign-up-container">
-                <form class="Form" action="@Url.Action("SubmitRegistration", "Staff_Guest")" method="post">
+                <form class="Form" action="@Url.Action("SubmitRegistration_Guest", "Staff_Guest")" method="post" id="Guest_Form">
                     <h1>GUEST CHECK-IN</h1>
                     <div class="input-animated">
-                        <input placeholder="REPRESENTING CAPACITY" required="" list="capacities" name="Capacity" id="capacity" type="text">
-                        <label class="label-capacity" for="capacity"><span class="content-department"></span></label>
+                        <input placeholder="REPRESENTING CAPACITY" required="" list="capacities" name="Capacity" id="capacity" type="text" autocomplete="off" oninput="toggleCompanyField()">
                         <datalist id="capacities">
-                            <option value="">Select Representing capacity</option>
+                            <option value="">Select a Capacity</option>
+                            @if (capacitiesList != null)
+                            {
+                                var capacityList = capacitiesList.Take(5);
+                                foreach (var capacity in capacityList)
+                                {
+                                    <option value="@capacity.CapacityName">@capacity.CapacityName</option>
+                                }
+                            }
                         </datalist>
                     </div>
-                    <input type="text" placeholder="COMPANY" autocomplete="off" />
-                    <input type="email" placeholder="NAME" autocomplete="off" />
-                    <input type="email" placeholder="EMAIL" autocomplete="off" />
-                    <div class="input-animated">
-                        <input type="text" autocomplete="off">
-                        <datalist id="">
-                            <option value="">Select a Department</option>
-                        </datalist>
-                    </div>
-                    <button>SUBMIT</button>
+                    <input type="text" id="company" name="Company" placeholder="COMPANY" autocomplete="off" disabled />
+
+                    <input placeholder="TITLE" required="" list="titles" name="Title" id="title" type="text" autocomplete="off">
+                    <datalist id="titles">
+                        <option value="">Select a Title</option>
+                        @if (titlesList != null)
+                        {
+                            var titleList = titlesList.Take(5);
+                            foreach (var title in titleList)
+                            {
+                                <option value="@title.TitleName">@title.TitleName</option>
+                            }
+                        }
+                    </datalist>
+                    <input type="text" id="name" placeholder="GUEST'S NAME" autocomplete="off" name="guestName" />
+                    <input type="email" id="email" placeholder="GUEST'S EMAIL" autocomplete="off" name="guestEmail" />
+                    <input placeholder="ENQUIRY TYPE" required="" list="enquires" name="enquiryType" id="enquiry" type="text" autocomplete="off">
+                    <datalist id="enquires">
+                        <option value="">Select an Enquiry</option>
+                        @if (enquiresList != null)
+                        {
+                            var enquiryList = enquiresList.Take(5);
+                            foreach (var enquiry in enquiresList)
+                            {
+                                <option value="@enquiry.EnquiryName">@enquiry.EnquiryName</option>
+                            }
+                        }
+                    </datalist>
+                    @*<button>SUBMIT</button>*@
+                    <button type="submit" id="submit-button">Submit</button>
                 </form>
             </div>
+
             <div class="form-container sign-in-container">
                 <form class="Form" action="@Url.Action("SubmitRegistration", "Staff_Guest")" method="post">
                     <h1>STAFF CHECK-IN</h1>
@@ -172,7 +205,7 @@
                 });
 
                 $('#department').on('change', function () {
-                    
+
                     $('#employee').focus();
                 });
 
@@ -180,6 +213,40 @@
                     $('#submit-button').focus();
                     processOtp(); // Trigger processOtp when employee is selected
                 });
+
+                // Clear inputs when FASSET Staff or Guest button is clicked
+                function clearInputs() {
+                    $('#department').val('');
+                    $('#employee').val('');
+                    $('#departments').empty();
+                    $('#employees').empty();
+                    $('#repCapacity').val('');
+                    $('#company').val('');
+                    $('#repCapacity').empty();
+                    $('#company').empty();
+                    $('#title').val('');
+                    $('#name').val('');
+                    $('#title').empty();
+                    $('#name').empty();
+                    $('#email').val('');
+                    $('#enquiry').val('');
+                    $('#email').empty();
+                    $('#enquiry').empty();
+                }
+
+                // Event listener for FASSET Staff button
+                $('#signIn').on('click', function () {
+                    clearInputs();
+                    container.classList.remove("right-panel-active");
+                });
+
+                // Event listener for Guest button
+                $('#signUp').on('click', function () {
+                    clearInputs();
+                    container.classList.add("right-panel-active");
+                });
+
+                
 
             });
 
@@ -218,6 +285,32 @@
             signInButton.addEventListener('click', () => {
                 container.classList.remove("right-panel-active");
             });
+
+            function toggleCompanyField() {
+                var capacityField = document.getElementById('capacity');
+                var companyField = document.getElementById('company');
+
+                // List of capacities that should enable the company field
+                var enableCompanyConditions = [
+                    "On behalf of an organization",
+                    "Contractor or consultant",
+                    "Guest of an employee",
+                    "Other"
+                ];
+
+                // Enable or disable the company field based on the selected capacity
+                if (enableCompanyConditions.includes(capacityField.value)) {
+                    companyField.disabled = false;
+                } else {
+                    companyField.disabled = true;
+                    companyField.value = '';  // Clear the company field if it's disabled
+                }
+            }
+
+            // Ensure the field is disabled on page load
+            window.onload = function () {
+                toggleCompanyField();
+            }
 
             function processOtp() {
                 console.log("processOtp function triggered");
@@ -258,10 +351,6 @@
                    /* document.querySelector('.Form').submit();*/
                 }
             }
-
-
-
-
         </script>
     </body>
     </html>

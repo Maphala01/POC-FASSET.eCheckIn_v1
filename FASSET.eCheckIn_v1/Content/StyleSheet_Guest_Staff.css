@@ -1,4 +1,4 @@
-﻿*, *:before, *:after {
+﻿/**, *:before, *:after {
     -webkit-box-sizing: border-box;
     box-sizing: border-box;
     margin: 0;
@@ -286,4 +286,447 @@ input {
 .cont.s--signup .sign-up {
     -webkit-transform: translate3d(0, 0, 0);
     transform: translate3d(0, 0, 0);
+}
+*/
+@import url('https://fonts.googleapis.com/css?family=Montserrat:400,800');
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background: #f6f5f7;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    font-family: 'Montserrat', sans-serif;
+    height: 95vh;
+    margin: -20px 0 50px;
+}
+
+.MainHead {
+    text-align: center;
+    margin: 0;
+    font-size: 55px !important; /* Adjust size as needed */
+    font-weight: bold;
+}
+
+h1 {
+    font-weight: bold;
+    margin: 0;
+}
+
+h2 {
+    text-align: center;
+}
+
+p {
+    font-size: 14px;
+    font-weight: 100;
+    line-height: 20px;
+    letter-spacing: 0.5px;
+    margin: 20px 0 30px;
+}
+
+span {
+    font-size: 12px;
+}
+
+a {
+    color: #333;
+    font-size: 14px;
+    margin: 15px 0;
+}
+
+button {
+    border-radius: 20px;
+    border: 1px solid #12337F;
+    background-color: #12337F;
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 15px 60px; /* Increased button padding */
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: transform 80ms ease-in;
+}
+
+    button:active {
+        transform: scale(0.95);
+    }
+
+    button:focus {
+        outline: none;
+    }
+
+    button.ghost {
+        background-color: transparent;
+        border-color: #FFFFFF;
+    }
+
+form {
+    background-color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 0 60px; /* Increased form padding */
+    height: auto;
+    max-height: 90%;
+    text-align: center;
+    overflow-y: auto;
+}
+
+#Guest_Form {
+    margin-top:-170px !important;
+
+}
+input {
+    background-color: #eee;
+    border: none;
+    padding: 20px 25px; /* Increased padding for larger input fields */
+    margin: 15px 0; /* Increased margin for better spacing */
+    width: 35vh;
+    font-size: 18px; /* Increased font size for better readability */
+}
+
+.container {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
+    position: relative;
+    overflow: hidden;
+    width: 80vw; /* Adjust to occupy 80% of the viewport width */
+    height: 80vh; /* Adjust to occupy 80% of the viewport height */
+    max-width: 1500px;
+    max-height: 1100px;
+    min-height: 480px;
+    min-width: 320px;
+}
+
+.form-container {
+    position: absolute;
+    top: 350px;
+    height: 100%;
+    width: 50%;
+    transition: all 0.6s ease-in-out;
+}
+
+.sign-in-container {
+    left: 0;
+    z-index: 2;
+}
+
+.sign-up-container {
+    left: 50%;
+    opacity: 0;
+    z-index: 1;
+    transform: translateX(-100%);
+}
+
+/*.container.right-panel-active .sign-up-container {
+    transform: translateX(0);
+    opacity: 1;
+    z-index: 5;
+}*/
+
+
+.container.right-panel-active .sign-up-container {
+    transform: translateX(0);
+    opacity: 1;
+    z-index: 5;
+    animation: show 0.6s;
+}
+
+@keyframes show {
+    0%, 49.99% {
+        opacity: 0;
+        z-index: 1;
+    }
+
+    50%, 100% {
+        opacity: 1;
+        z-index: 5;
+    }
+}
+
+.overlay-container {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 50%;
+    height: 100%;
+    overflow: hidden;
+    transition: transform 0.6s ease-in-out;
+    z-index: 100;
+}
+
+.container.right-panel-active .overlay-container {
+    transform: translateX(-100%);
+}
+
+.overlay {
+    background: #12337F;
+    /* background: -webkit-linear-gradient(to right, #FF4B2B, #FF416C);*/
+    background: -webkit-linear-gradient(to right, #12337F, #12337F);
+    background: linear-gradient(to right, #12337F, #12337F);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: 0 0;
+    color: #FFFFFF;
+    position: relative;
+    left: -100%;
+    height: 100%;
+    width: 200%;
+    transform: translateX(0);
+    transition: transform 0.6s ease-in-out;
+}
+
+.container.right-panel-active .overlay {
+    transform: translateX(50%);
+}
+
+.overlay-panel {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 0 40px;
+    text-align: center;
+    top: 0;
+    height: 100%;
+    width: 50%;
+    transform: translateX(0);
+    transition: transform 0.6s ease-in-out;
+}
+
+.overlay-left {
+    transform: translateX(-20%);
+}
+
+.container.right-panel-active .overlay-left {
+    transform: translateX(0);
+}
+
+.overlay-right {
+    right: 0;
+    transform: translateX(0);
+}
+
+.container.right-panel-active .overlay-right {
+    transform: translateX(20%);
+}
+
+.social-container {
+    margin: 20px 0;
+}
+
+    .social-container a {
+        border: 1px solid #DDDDDD;
+        border-radius: 50%;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0 5px;
+        height: 40px;
+        width: 40px;
+    }
+
+footer {
+    background-color: #222;
+    color: #fff;
+    font-size: 14px;
+    bottom: 0;
+    position: fixed;
+    left: 0;
+    right: 0;
+    text-align: center;
+    z-index: 999;
+}
+
+    footer p {
+        margin: 10px 0;
+    }
+
+    footer i {
+        color: red;
+    }
+
+    footer a {
+        color: #3c97bf;
+        text-decoration: none;
+    }
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .container {
+        width: 85%;
+        height: 85%;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+
+    p {
+        font-size: 16px;
+    }
+
+    input {
+        padding: 18px 22px; /* Slightly reduce padding for smaller screens */
+        font-size: 16px;
+    }
+
+    form {
+        padding: 0 40px; /* Adjust form padding */
+    }
+}
+
+@media screen and (min-width: 1200px) {
+    .container {
+        width: 70vw;
+        height: 70vh;
+    }
+}
+
+/* For screens between 768px and 1200px */
+@media screen and (max-width: 1200px) and (min-width: 768px) {
+    .container {
+        width: 80vw;
+        height: 80vh;
+    }
+}
+
+@media screen and (max-width: 768px) and (min-width: 480px) {
+    .container {
+        width: 90vw;
+        height: 90vh;
+    }
+
+    input {
+        padding: 16px 20px; /* Further reduce padding for smaller screens */
+        font-size: 14px;
+    }
+
+    form {
+        padding: 0 30px;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        width: 90%;
+        height: 90%;
+    }
+    .sign-up-container {
+        left: 50%;
+        opacity: 0;
+        z-index: 1;
+        transform: translateX(-100%);
+    }
+
+    .container.right-panel-active .sign-up-container {
+        transform: translateX(0);
+        opacity: 1;
+        z-index: 5;
+    }
+
+
+    .overlay-container, .overlay-panel {
+        width: 100%;
+        height: 50%;
+        top: auto;
+        left: auto;
+        transform: none;
+    }
+
+    .sign-in-container, .sign-up-container {
+        width: 100%;
+    }
+
+    .container.right-panel-active .overlay-container {
+        transform: translateY(-100%);
+    }
+
+    .container.right-panel-active .overlay {
+        transform: translateY(50%);
+    }
+}
+
+@media (max-width: 600px) {
+    .container {
+        width: 95%;
+        height: 95%;
+    }
+
+    h1 {
+        font-size: 20px;
+    }
+
+    p {
+        font-size: 14px;
+    }
+
+    button {
+        padding: 10px 30px;
+        font-size: 14px;
+    }
+
+    input {
+        padding: 14px 18px; /* Further reduce padding for very small screens */
+        font-size: 12px;
+    }
+
+    form {
+        padding: 0 20px;
+    }
+}
+
+/* For screens smaller than 480px */
+@media screen and (max-width: 480px) {
+    .container {
+        width: 95vw;
+        height: 95vh;
+    }
+
+    form {
+        padding: 0 20px;
+    }
+
+    input {
+        padding: 14px 18px;
+    }
+
+    button {
+        padding: 10px 35px;
+        font-size: 14px;
+    }
+}
+
+/* Adjustments for Overlay Panels */
+.overlay-panel {
+    padding: 0 20px; /* Adjusted padding for overlay panels */
+}
+
+@media (max-width: 360px) {
+    .container {
+        width: 100%;
+        height: 100%;
+    }
+
+    input {
+        padding: 12px 16px; /* Minimum padding for the smallest screens */
+        font-size: 10px;
+    }
+
+    form {
+        padding: 0 15px;
+    }
+
+    button {
+        padding: 8px 20px;
+        font-size: 12px;
+    }
 }

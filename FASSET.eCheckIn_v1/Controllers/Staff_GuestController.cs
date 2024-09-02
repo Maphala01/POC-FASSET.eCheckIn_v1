@@ -21,10 +21,38 @@ namespace FASSET.eCheckIn_v1.Controllers
         {
             ViewBag.Departments = _dbAccess.GetDepartments_2();
             ViewBag.Employees = _dbAccess.GetEmployees_2();
+            ViewBag.Capacities = _dbAccess.GetRepCapacity();
+            ViewBag.Titles = _dbAccess.GetTitle();
+            ViewBag.Enquiries = _dbAccess.GetEnquiryType();
+
             return View();
         }
 
-        [HttpPost]
+        public ActionResult SubmitRegistration_Guest(Guest_StaffModel model)
+        {
+            int res = _dbAccess.SaveRegistration_Guest(model);
+            if (res == 99)
+            {
+                DateTime today = DateTime.Today;
+                string dayOfWeek = today.DayOfWeek.ToString();
+                string message = model.guestName + $" you're checked in...Happy {dayOfWeek} !";
+                TempData["CheckIn-Success"] = message;
+                return RedirectToAction("Index");
+
+            }
+            model.DepartmentList = _dbAccess.GetDepartments_2();
+            model.EmployeeList = _dbAccess.GetEmployees_2();
+            model.CapacityList = _dbAccess.GetRepCapacity();
+            model.TitleList = _dbAccess.GetTitle();
+
+            ViewBag.Departments = model.DepartmentList;
+            ViewBag.Employees = model.EmployeeList;
+            ViewBag.Capacities = model.CapacityList;
+            ViewBag.Titles = model.TitleList;
+            return View("Index", model);
+        }
+
+            [HttpPost]
         public ActionResult SubmitRegistration(Guest_StaffModel model)
         {
             QRCodeModel qrCodeModel = new QRCodeModel();
@@ -71,8 +99,13 @@ namespace FASSET.eCheckIn_v1.Controllers
  
                 model.DepartmentList = _dbAccess.GetDepartments_2();
                 model.EmployeeList = _dbAccess.GetEmployees_2();
+                model.CapacityList = _dbAccess.GetRepCapacity();
+                model.TitleList = _dbAccess.GetTitle();
+
                 ViewBag.Departments = model.DepartmentList;
                 ViewBag.Employees = model.EmployeeList;
+                ViewBag.Capacities = model.CapacityList;
+                ViewBag.Titles = model.TitleList;
                 return View("Index", model);
             
             
