@@ -407,7 +407,7 @@ input {
 
 .form-container {
     position: absolute;
-    top: 350px;
+    top: 200px;
     height: 100%;
     width: 50%;
     transition: all 0.6s ease-in-out;
@@ -586,8 +586,8 @@ footer {
 
 @media screen and (min-width: 1200px) {
     .container {
-        width: 70vw;
-        height: 70vh;
+        width: 95vw;
+        height: 85vh;
     }
 }
 
@@ -728,5 +728,11 @@ footer {
     button {
         padding: 8px 20px;
         font-size: 12px;
+    }
+
+
+    #2_grid {
+        width:10px !important;
+    
     }
 }
