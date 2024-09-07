@@ -306,7 +306,16 @@ body {
 }
 
 .MainHead {
-    text-align: center;
+/*    text-align: left;*/
+    padding-left:80px;
+    margin: 0;
+    font-size: 55px !important; /* Adjust size as needed */
+    font-weight: bold;
+    padding-top:250px;
+}
+
+.MainHead1 {
+    padding-left: 40px;
     margin: 0;
     font-size: 55px !important; /* Adjust size as needed */
     font-weight: bold;
