@@ -17,13 +17,11 @@
         <link href="~/Content/toastr.min.css" rel="stylesheet"/>
     </head>
     <body>
-        
-
-        <h1 class="MainHead">FASSET Echeck-In&reg</h1>
+              
         <div class="container" id="container">
             <div class="form-container sign-up-container">
                 <form class="Form" action="@Url.Action("SubmitRegistration_Guest", "Staff_Guest")" method="post" id="Guest_Form">
-                    <h1>GUEST CHECK-IN</h1>
+                    <h1>GUEST-Maphala CHECK-IN</h1>
                     <div class="input-animated">
                         <input placeholder="REPRESENTING CAPACITY" required="" list="capacities" name="Capacity" id="capacity" type="text" autocomplete="off" oninput="toggleCompanyField()">
                         <datalist id="capacities">
@@ -115,6 +113,7 @@
 
             <div class="overlay-container">
                 <div class="overlay">
+                    <h1 class="MainHead">FASSET Echeck-In&reg</h1>
                     <div class="overlay-panel overlay-left">
                         <img class="pic_pad" src="~/Content/Small_Fasset-.png" />
                         <h1>
@@ -126,6 +125,7 @@
                         <button class="ghost" id="signIn">FASSET Staff</button>
                     </div>
                     <div class="overlay-panel overlay-right">
+                        <h1 class="MainHead1">FASSET Echeck-In&reg</h1>
                         <img class="pic_pad" src="~/Content/Small_Fasset-.png" />
                         <h1>
                             Welcome to FASSET
