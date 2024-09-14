@@ -395,7 +395,7 @@ form {
 input {
     background-color: #eee;
     border: none;
-    padding: 20px 25px; /* Increased padding for larger input fields */
+    padding: 18px 20px; /* Increased padding for larger input fields */
     margin: 15px 0; /* Increased margin for better spacing */
     width: 35vh;
     font-size: 18px; /* Increased font size for better readability */
