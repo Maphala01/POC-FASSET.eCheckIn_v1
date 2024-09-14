@@ -307,7 +307,7 @@ body {
 
 .MainHead {
 /*    text-align: left;*/
-    padding-left:80px;
+    padding-left:10px;
     margin: 0;
     font-size: 50px !important; /* Adjust size as needed */
     font-weight: bold;
@@ -315,7 +315,7 @@ body {
 }
 
 .MainHead1 {
-    padding-left: 80px;
+    padding-left: 10px;
     margin: 0;
     font-size: 50px !important; /* Adjust size as needed */
     font-weight: bold;
@@ -395,9 +395,9 @@ form {
 input {
     background-color: #eee;
     border: none;
-    padding: 18px 20px; /* Increased padding for larger input fields */
+    padding: 9px 20px; /* Increased padding for larger input fields */
     margin: 15px 0; /* Increased margin for better spacing */
-    width: 35vh;
+    width: 40vh;
     font-size: 18px; /* Increased font size for better readability */
 }
 
