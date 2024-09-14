@@ -21,9 +21,9 @@
         <div class="container" id="container">
             <div class="form-container sign-up-container">
                 <form class="Form" action="@Url.Action("SubmitRegistration_Guest", "Staff_Guest")" method="post" id="Guest_Form">
-                    <h1>GUEST-Maphala CHECK-IN</h1>
+                    <h1>GUEST CHECK-IN</h1>
                     <div class="input-animated">
-                        <input placeholder="REPRESENTING CAPACITY" required="" list="capacities" name="Capacity" id="capacity" type="text" autocomplete="off" oninput="toggleCompanyField()">
+                        <input placeholder="REPRESENTING CAPACITY" required="" list="capacities" name="Capacity" id="capacity" type="text" autocomplete="off" oninput="toggleCompanyField()" onchange="focusNextField('company')">
                         <datalist id="capacities">
                             <option value="">Select a Capacity</option>
                             @if (capacitiesList != null)
@@ -38,7 +38,7 @@
                     </div>
                     <input type="text" id="company" name="Company" placeholder="COMPANY" autocomplete="off" disabled />
 
-                    <input placeholder="TITLE" required="" list="titles" name="Title" id="title" type="text" autocomplete="off">
+                    <input placeholder="TITLE" required="" list="titles" name="Title" id="title" type="text" autocomplete="off" onchange="focusNextField('name')">
                     <datalist id="titles">
                         <option value="">Select a Title</option>
                         @if (titlesList != null)
@@ -52,7 +52,7 @@
                     </datalist>
                     <input type="text" id="name" placeholder="GUEST'S NAME" autocomplete="off" name="guestName" />
                     <input type="email" id="email" placeholder="GUEST'S EMAIL" autocomplete="off" name="guestEmail" />
-                    <input placeholder="ENQUIRY TYPE" required="" list="enquires" name="enquiryType" id="enquiry" type="text" autocomplete="off">
+                    <input placeholder="ENQUIRY TYPE" required="" list="enquires" name="enquiryType" id="enquiry" type="text" autocomplete="off" onchange="focusNextField('submit-button')">
                     <datalist id="enquires">
                         <option value="">Select an Enquiry</option>
                         @if (enquiresList != null)
@@ -112,9 +112,9 @@
             </div>
 
             <div class="overlay-container">
-                <div class="overlay">
-                    <h1 class="MainHead">FASSET Echeck-In&reg</h1>
+                <div class="overlay">                 
                     <div class="overlay-panel overlay-left">
+                        <h1 class="MainHead">FASSET Echeck-In&reg</h1>
                         <img class="pic_pad" src="~/Content/Small_Fasset-.png" />
                         <h1>
                             Welcome, Back Colleague
@@ -351,6 +351,45 @@
                    /* document.querySelector('.Form').submit();*/
                 }
             }
+
+            function toggleCompanyField() {
+                const capacity = document.getElementById("capacity").value;
+                const companyField = document.getElementById("company");
+                const titleField = document.getElementById("title");
+
+                // Define valid capacities that should enable the company field
+                const validCapacities = [
+                    "On behalf of an organization",
+                    "Contractor or consultant",
+                    "Guest of an employee",
+                    "Other"
+                ];
+
+                if (validCapacities.includes(capacity)) {
+                    // Enable and focus on the company field if valid capacity is selected
+                    companyField.disabled = false;
+                    companyField.focus();
+                } else if (capacity) {
+                    // Focus on the title field if capacity is not valid for company entry
+                    companyField.disabled = true;
+                    companyField.value = ''; // Clear the company field if it's disabled
+                    titleField.focus(); // Move focus to the title field
+                } else {
+                    // Handle case when no valid capacity is selected
+                    companyField.disabled = true;
+                    companyField.value = ''; // Clear the company field
+                }
+            }
+
+            function focusNextField(nextFieldId) {
+                const nextField = document.getElementById(nextFieldId);
+                if (nextField) {
+                    nextField.focus();
+                }
+            }
+
+            document.getElementById("capacity").addEventListener("change", toggleCompanyField);
+
         </script>
     </body>
     </html>
