@@ -73,6 +73,13 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
 
         public int SaveRegistration_Guest(Guest_StaffModel model)
         {
+            if (model.capacity.Equals("On my own behalf"))
+            {
+                string defaultCompany = "Not Applicable";
+                model.Company = defaultCompany;
+            }
+
+
             int res = 0;
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
