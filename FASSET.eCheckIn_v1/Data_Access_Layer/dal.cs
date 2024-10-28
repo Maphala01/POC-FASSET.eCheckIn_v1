@@ -184,7 +184,7 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
-                var command = new SqlCommand("SELECT DepartmentName FROM Departments ORDER BY DepartmentName ASC", connection);
+                var command = new SqlCommand("SELECT DISTINCT DepartmentName FROM Departments ORDER BY DepartmentName ASC", connection);
                 var reader = command.ExecuteReader();
 
                 var departments = new List<Department_2>();
@@ -204,7 +204,7 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
-                var command = new SqlCommand("SELECT Name FROM Employees ORDER BY Name ASC", connection);
+                var command = new SqlCommand("SELECT DISTINCT Name FROM Employees ORDER BY Name ASC", connection);
                 var reader = command.ExecuteReader();
 
                 var employees = new List<Employee_2>();
