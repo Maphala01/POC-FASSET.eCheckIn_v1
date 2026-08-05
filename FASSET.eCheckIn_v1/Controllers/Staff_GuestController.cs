@@ -21,7 +21,7 @@ namespace FASSET.eCheckIn_v1.Controllers
         {
             ViewBag.Departments = _dbAccess.GetDepartments_2();
             ViewBag.Employees = _dbAccess.GetEmployees_2();
-            ViewBag.Capacities = _dbAccess.GetRepCapacity();
+            //ViewBag.Capacities = _dbAccess.GetRepCapacity();
             ViewBag.Titles = _dbAccess.GetTitle();
             ViewBag.Enquiries = _dbAccess.GetEnquiryType();
 
@@ -42,7 +42,7 @@ namespace FASSET.eCheckIn_v1.Controllers
             }
             model.DepartmentList = _dbAccess.GetDepartments_2();
             model.EmployeeList = _dbAccess.GetEmployees_2();
-            model.CapacityList = _dbAccess.GetRepCapacity();
+            //model.CapacityList = _dbAccess.GetRepCapacity();
             model.TitleList = _dbAccess.GetTitle();
 
             ViewBag.Departments = model.DepartmentList;
@@ -99,7 +99,7 @@ namespace FASSET.eCheckIn_v1.Controllers
  
                 model.DepartmentList = _dbAccess.GetDepartments_2();
                 model.EmployeeList = _dbAccess.GetEmployees_2();
-                model.CapacityList = _dbAccess.GetRepCapacity();
+                //model.CapacityList = _dbAccess.GetRepCapacity();
                 model.TitleList = _dbAccess.GetTitle();
 
                 ViewBag.Departments = model.DepartmentList;

@@ -1,0 +1,468 @@
+﻿@{
+    Layout = null;
+    var departments = ViewBag.Departments as List<string>;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>FASSET&reg; - Check-In Reports</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f2f5f8;
+            color: #23303d;
+        }
+
+        header {
+            background-color: #1b3f6e;
+            color: #fff;
+            padding: 18px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+            header h1 {
+                font-size: 20px;
+                margin: 0;
+            }
+
+        .filters {
+            background: #fff;
+            margin: 20px 28px;
+            padding: 16px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .filter-field label {
+            display: block;
+            font-size: 12px;
+            color: #667;
+            margin-bottom: 4px;
+        }
+
+        .filter-field input, .filter-field select {
+            padding: 8px 10px;
+            border: 1px solid #d7dde3;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        #applyBtn {
+            background-color: #1b3f6e;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 9px 20px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+            #applyBtn:hover {
+                background-color: #14304f;
+            }
+
+        .summary-cards {
+            display: flex;
+            gap: 16px;
+            margin: 0 28px 20px 28px;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            padding: 20px 22px;
+            flex: 1;
+            min-width: 160px;
+            text-align: center;
+        }
+
+            .card .value {
+                font-size: 30px;
+                font-weight: bold;
+            }
+
+            .card .label {
+                font-size: 12px;
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+                color: #778;
+                margin-top: 6px;
+            }
+
+            .card.accent-navy .value {
+                color: #1b3f6e;
+            }
+
+            .card.accent-teal .value {
+                color: #0f7fa3;
+            }
+
+        .category-bar {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            margin: 0 28px 20px 28px;
+            padding: 16px 20px;
+        }
+
+            .category-bar .category-bar-label {
+                font-size: 11px;
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+                color: #99a;
+                margin-bottom: 10px;
+            }
+
+        .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .pill {
+            border: 1px solid #dde3ea;
+            background: #f7f9fb;
+            color: #445;
+            border-radius: 999px;
+            padding: 8px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background-color 0.15s ease, color 0.15s ease;
+        }
+
+            .pill:hover {
+                background: #eef2f6;
+            }
+
+            .pill.active {
+                background: #1b3f6e;
+                color: #fff;
+                border-color: #1b3f6e;
+            }
+
+        .report-section {
+            display: none;
+        }
+
+            .report-section.visible {
+                display: block;
+            }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+            gap: 20px;
+            margin: 0 28px 8px 28px;
+        }
+
+        .chart-card {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            padding: 18px 20px;
+        }
+
+            .chart-card h2 {
+                font-size: 15px;
+                margin: 0 0 12px 0;
+                color: #333;
+            }
+
+            .chart-card canvas {
+                max-height: 280px;
+            }
+
+        .table-card table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .table-card th, .table-card td {
+            text-align: left;
+            padding: 6px 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .table-card th {
+            color: #667;
+            font-weight: 600;
+        }
+
+        .loading-note {
+            font-size: 13px;
+            color: #888;
+            margin: 0 28px 12px 28px;
+            display: none;
+        }
+
+        .footer-space {
+            height: 30px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>FASSET&reg; Check-In Reports</h1>
+        <span style="font-size:13px; opacity:0.85;">Attendance &amp; workforce breakdown</span>
+    </header>
+
+    <div class="filters">
+        <div class="filter-field">
+            <label for="startDate">From</label>
+            <input type="date" id="startDate" />
+        </div>
+        <div class="filter-field">
+            <label for="endDate">To</label>
+            <input type="date" id="endDate" />
+        </div>
+        <div class="filter-field">
+            <label for="departmentSelect">Department</label>
+            <select id="departmentSelect">
+                <option value="">All departments</option>
+                @if (departments != null)
+                {
+                    foreach (var dept in departments)
+                    {
+                        <option value="@dept">@dept</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="filter-field">
+            <label for="lateAfter">Late after</label>
+            <input type="time" id="lateAfter" value="09:00" />
+        </div>
+        <button id="applyBtn" onclick="loadReport()">Apply</button>
+    </div>
+
+    <div id="loadingNote" class="loading-note">Loading&hellip;</div>
+
+    <div class="summary-cards">
+        <div class="card accent-navy">
+            <div class="value" id="totalCheckIns">-</div>
+            <div class="label">Total check-ins</div>
+        </div>
+        <div class="card accent-teal">
+            <div class="value" id="dateRangeDays">-</div>
+            <div class="label">Days in range</div>
+        </div>
+    </div>
+
+    <div class="category-bar">
+        <div class="category-bar-label">Report categories</div>
+        <div class="pill-row">
+            <button class="pill active" data-target="all" onclick="showCategory('all')">All</button>
+            <button class="pill" data-target="attendance" onclick="showCategory('attendance')">Attendance / Time-Based</button>
+            <button class="pill" data-target="organizational" onclick="showCategory('organizational')">Organizational Breakdown</button>
+            <button class="pill" data-target="demographics" onclick="showCategory('demographics')">Workforce Demographics</button>
+        </div>
+    </div>
+
+    <div class="report-section visible" data-category="attendance">
+        <div class="chart-grid">
+            <div class="chart-card">
+                <h2>Check-ins by day of week</h2>
+                <canvas id="chartByDayOfWeek"></canvas>
+            </div>
+            <div class="chart-card">
+                <h2>Check-ins by hour of day</h2>
+                <canvas id="chartByHour"></canvas>
+            </div>
+            <div class="chart-card">
+                <h2>Check-ins by week</h2>
+                <canvas id="chartByWeek"></canvas>
+            </div>
+            <div class="chart-card">
+                <h2>Late vs. on-time (<span id="lateThresholdLabel">09:00</span>)</h2>
+                <canvas id="chartLateVsOnTime"></canvas>
+            </div>
+            <div class="chart-card table-card">
+                <h2>Longest gap since last check-in</h2>
+                <table>
+                    <thead>
+                        <tr><th>Employee</th><th>Last check-in</th><th>Days since</th></tr>
+                    </thead>
+                    <tbody id="lastCheckInGapsBody"></tbody>
+                </table>
+            </div>
+            <div class="chart-card table-card">
+                <h2>Check-ins by location <span style="font-weight:normal;font-size:12px;color:#888;">(raw GPS clusters &mdash; no place names)</span></h2>
+                <table>
+                    <thead>
+                        <tr><th>Location</th><th>Check-ins</th></tr>
+                    </thead>
+                    <tbody id="byLocationBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="report-section visible" data-category="organizational">
+        <div class="chart-grid">
+            <div class="chart-card">
+                <h2>Check-ins by department</h2>
+                <canvas id="chartByDepartment"></canvas>
+            </div>
+            <div class="chart-card table-card">
+                <h2>Attendance rate by department (% of headcount)</h2>
+                <table>
+                    <thead>
+                        <tr><th>Department</th><th>Checked in</th><th>Headcount</th><th>Rate</th></tr>
+                    </thead>
+                    <tbody id="attendanceRateBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="report-section visible" data-category="demographics">
+        <div class="chart-grid">
+            <div class="chart-card">
+                <h2>Occupational level distribution</h2>
+                <canvas id="chartByOccLevel"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-space"></div>
+
+    <script>
+        function showCategory(target) {
+            document.querySelectorAll('.pill').forEach(function (p) {
+                p.classList.toggle('active', p.getAttribute('data-target') === target);
+            });
+            document.querySelectorAll('.report-section').forEach(function (s) {
+                var show = target === 'all' || s.getAttribute('data-category') === target;
+                s.classList.toggle('visible', show);
+            });
+        }
+
+        var charts = {};
+        var brandColors = ['#1b3f6e', '#2e9e4a', '#f2b705', '#c0392b', '#7d5ba6', '#0f7fa3', '#e07b39', '#5c6f7d'];
+
+        function todayStr() { return new Date().toISOString().slice(0, 10); }
+        function daysAgoStr(n) {
+            var d = new Date();
+            d.setDate(d.getDate() - n);
+            return d.toISOString().slice(0, 10);
+        }
+
+        function destroyChart(id) {
+            if (charts[id]) { charts[id].destroy(); }
+        }
+
+        function renderBarChart(canvasId, labels, data, horizontal) {
+            destroyChart(canvasId);
+            var ctx = document.getElementById(canvasId).getContext('2d');
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: labels, datasets: [{ data: data, backgroundColor: brandColors }] },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    indexAxis: horizontal ? 'y' : 'x'
+                }
+            });
+        }
+
+        function renderDoughnutChart(canvasId, labels, data) {
+            destroyChart(canvasId);
+            var ctx = document.getElementById(canvasId).getContext('2d');
+            charts[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: labels, datasets: [{ data: data, backgroundColor: brandColors }] },
+                options: { responsive: true }
+            });
+        }
+
+        function fillTable(bodyId, rows, rowRenderer) {
+            var body = document.getElementById(bodyId);
+            body.innerHTML = '';
+            rows.forEach(function (r) {
+                var tr = document.createElement('tr');
+                tr.innerHTML = rowRenderer(r);
+                body.appendChild(tr);
+            });
+        }
+
+        function loadReport() {
+            var start = document.getElementById('startDate').value;
+            var end = document.getElementById('endDate').value;
+            var dept = document.getElementById('departmentSelect').value;
+            var lateAfter = document.getElementById('lateAfter').value;
+            var loadingNote = document.getElementById('loadingNote');
+
+            loadingNote.style.display = 'block';
+
+            var url = '@Url.Action("Data", "Reports")'
+                + '?start=' + encodeURIComponent(start)
+                + '&end=' + encodeURIComponent(end)
+                + '&department=' + encodeURIComponent(dept)
+                + '&lateAfter=' + encodeURIComponent(lateAfter);
+
+            fetch(url)
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    loadingNote.style.display = 'none';
+
+                    document.getElementById('totalCheckIns').textContent = data.summary.totalCheckIns;
+                    document.getElementById('dateRangeDays').textContent = data.summary.dateRangeDays;
+
+                    // Attendance / time-based
+                    renderBarChart('chartByDayOfWeek', data.byDayOfWeek.map(function (d) { return d.label; }), data.byDayOfWeek.map(function (d) { return d.count; }), false);
+                    renderBarChart('chartByHour', data.byHour.map(function (d) { return d.label; }), data.byHour.map(function (d) { return d.count; }), false);
+                    renderBarChart('chartByWeek', data.byWeek.map(function (d) { return d.label; }), data.byWeek.map(function (d) { return d.count; }), false);
+
+                    document.getElementById('lateThresholdLabel').textContent = data.lateVsOnTime.threshold;
+                    renderDoughnutChart('chartLateVsOnTime', ['On-time', 'Late'], [data.lateVsOnTime.onTime, data.lateVsOnTime.late]);
+
+                    fillTable('lastCheckInGapsBody', data.lastCheckInGaps, function (r) {
+                        return '<td>' + r.employeeName + '</td><td>' + (r.lastCheckIn || 'Never') + '</td><td>' + (r.daysSince === null ? '\u2014' : r.daysSince) + '</td>';
+                    });
+
+                    fillTable('byLocationBody', data.byLocation, function (r) {
+                        return '<td>' + r.label + '</td><td>' + r.count + '</td>';
+                    });
+
+                    // Organizational breakdown
+                    renderBarChart('chartByDepartment', data.byDepartment.map(function (d) { return d.label; }), data.byDepartment.map(function (d) { return d.count; }), data.byDepartment.length > 6);
+
+                    fillTable('attendanceRateBody', data.attendanceRateByDepartment, function (r) {
+                        return '<td>' + r.label + '</td><td>' + r.checkedIn + '</td><td>' + r.headcount + '</td><td>' + r.ratePercent + '%</td>';
+                    });
+
+                    // Workforce demographics
+                    renderBarChart('chartByOccLevel', data.byOccupationalLevel.map(function (d) { return d.label; }), data.byOccupationalLevel.map(function (d) { return d.count; }), false);
+                })
+                .catch(function (err) {
+                    loadingNote.style.display = 'none';
+                    console.error('Failed to load report data:', err);
+                    alert('Could not load report data. Check the browser console for details.');
+                });
+        }
+
+        document.getElementById('startDate').value = daysAgoStr(30);
+        document.getElementById('endDate').value = todayStr();
+        loadReport();
+    </script>
+</body>
+</html>

@@ -16,6 +16,94 @@
 }
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300&family=Roboto:wght@100&display=swap');
 
+
+.checkbox-border-container {
+    border: 2px solid black; /* Blue border */
+    border-radius: 10px; /* Rounded corners */
+    padding: 20px; /* Spacing inside the border */
+    max-width: 300px; /* Maximum width */
+    margin: 20px auto; /* Center the container */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); /* Subtle shadow */
+    background-color: lightgray; /* Light background color */
+    font-weight:bold;
+}
+
+/* Center the checkboxes horizontally */
+.checkbox-container {
+    display: flex;
+    justify-content: center; /* Horizontally centers the checkboxes */
+    gap: 30px; /* Space between the checkboxes */
+    margin: 20px 0;
+}
+
+/* Customize the look of the checkbox label */
+.custom-checkbox {
+    position: relative;
+    padding-left: 30px;
+    cursor: pointer;
+    font-size: 16px;
+    user-select: none;
+}
+
+    /* Hide the default checkbox */
+    .custom-checkbox input {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    /* Create a custom checkbox */
+    .custom-checkbox .checkmark {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 20px;
+        width: 20px;
+        background-color: #eee;
+        border-radius: 4px;
+        transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    /* When the checkbox is checked, animate the checkmark */
+    .custom-checkbox input:checked ~ .checkmark {
+        background-color: #2196F3;
+        box-shadow: 0 0 10px rgba(33, 150, 243, 0.7);
+        animation: pulse 0.3s ease-in-out;
+    }
+
+    /* Create the checkmark (tick) when checked */
+    .custom-checkbox .checkmark::after {
+        content: "";
+        position: absolute;
+        display: none;
+        left: 7px;
+        top: 4px;
+        width: 5px;
+        height: 10px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+    }
+
+    /* Show the checkmark when checkbox is checked */
+    .custom-checkbox input:checked ~ .checkmark::after {
+        display: block;
+    }
+
+/* Animation for the checkmark's appearance */
+@keyframes pulse {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.7;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/*=----------------------------------------*/
 .datetime {
     color: #fff;
     background: #131419;

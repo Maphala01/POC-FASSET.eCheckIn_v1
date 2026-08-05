@@ -441,6 +441,9 @@ input {
     z-index: 5;
 }*/
 
+#submit-button2 {
+    margin-top: 90px !important;
+}
 
 .container.right-panel-active .sign-up-container {
     transform: translateX(0);
@@ -745,4 +748,5 @@ footer {
         width:10px !important;
     
     }
+
 }

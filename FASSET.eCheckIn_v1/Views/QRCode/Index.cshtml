@@ -49,23 +49,33 @@
 </head>
 <body>
     <div style="text-align:center;">
-        @if (ViewBag.QRCodeExpired != null)
+        @if (ViewBag.QRError != null)
+        {
+            <p style="color:red;">@ViewBag.QRError</p>
+        }
+        else if (ViewBag.QRCodeExpired != null)
         {
             <h2>QR Code Expired</h2>
             <p>The QR code you are trying to access has expired.</p>
         }
+        else if (Model.QRCodeImageUrl != null)
+        {
+            <h2>
+                Scan the QR Code to visit FASSET<span>&reg;</span> Echeck-In
+                <span id="date-display"></span>
+            </h2>
+            <img class="qr-code" src="@Model.QRCodeImageUrl" alt="Daily QR Code" />
+        }
         else
         {
-            <h2>Scan the QR Code to visit FASSET<span>&reg</span> Echeck-In <span id="date-display"></span></h2>
-            <img class="qr-code" src="@Model.QRCodeImageUrl" alt="Daily QR Code" />
-            @*<h1 style="font-size:5em">Your OTP: @Model.TOTP</h1>*@
+            <p style="color:orange;">QR code URL was not generated. Check server logs.</p>
         }
     </div>
 
     <!-- Timer display -->
     @*<div style="text-align:center;">
-        <h2>Time left: <span id="timer">45</span> seconds</h2>
-    </div>*@
+            <h2>Time left: <span id="timer">45</span> seconds</h2>
+        </div>*@
     <script src="~/Content/modernizr.min.js"></script>
     <script>
         //function reloadPageAfter45Seconds() {

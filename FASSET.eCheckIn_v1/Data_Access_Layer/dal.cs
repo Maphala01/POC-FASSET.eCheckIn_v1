@@ -29,12 +29,12 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
 
         public int SaveRegistration(Guest_StaffModel model)
         {
-            return SaveRegistration(model.Employee, model.Department, model.qrCodeImgUrl, model.QRCodeTotp, model.GeoLocation, "CheckInEmployee","Manual_Registration");
+            return SaveRegistration(model.Employee, model.Department, model.qrCodeImgUrl, model.QRCodeTotp, model.GeoLocation, "CheckInEmployee", "Manual_Registration");
             //return SaveRegistration(model.Employee, model.Department, model.qrCodeImgUrl, model.QRCodeTotp, model.GeoLocation, "CheckInEmployee");
         }
 
         //private int SaveRegistration(string name, string department, string qrCodeImageUrl, string totp, string geoLocation, string trnsNm,string regType)
-        private int SaveRegistration(string name, string department, string qrCodeImageUrl, string totp, string geoLocation, string trnsNm,string regType)
+        private int SaveRegistration(string name, string department, string qrCodeImageUrl, string totp, string geoLocation, string trnsNm, string regType)
         {
 
             string empName = name;
@@ -47,15 +47,38 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             int res = 0;
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
+                //SqlCommand sql_cmd = new SqlCommand("mst_spCheckInEmployee", connection);
+                //sql_cmd.CommandType = CommandType.StoredProcedure;
+                //sql_cmd.Parameters.AddWithValue("@Name", empName);
+                //sql_cmd.Parameters.AddWithValue("@Department", empDepartment);
+                //sql_cmd.Parameters.AddWithValue("@QRCodeImageUrl", empQrCodeImageUrl);
+                ////sql_cmd.Parameters.AddWithValue("@TOTP", empTOTP);
+                //sql_cmd.Parameters.AddWithValue("@GeoLocation", empGeoLocation);
+                //sql_cmd.Parameters.AddWithValue("@RegistrationType", regType);
+                //sql_cmd.Parameters.AddWithValue("@TrnsNm", trnsNm);
+
+                //SqlParameter outputParam = new SqlParameter("@IsVld", SqlDbType.Int)
+                //{
+                //    Direction = ParameterDirection.Output
+                //};
+                //sql_cmd.Parameters.Add(outputParam);
+
+                //connection.Open();
+                //sql_cmd.ExecuteNonQuery();
+
+                //// Get the output parameter value
+                //res = Convert.ToInt32(outputParam.Value);
                 SqlCommand sql_cmd = new SqlCommand("mst_spCheckInEmployee", connection);
                 sql_cmd.CommandType = CommandType.StoredProcedure;
+
                 sql_cmd.Parameters.AddWithValue("@Name", empName);
                 sql_cmd.Parameters.AddWithValue("@Department", empDepartment);
                 sql_cmd.Parameters.AddWithValue("@QRCodeImageUrl", empQrCodeImageUrl);
-                sql_cmd.Parameters.AddWithValue("@TOTP", empTOTP);
-                sql_cmd.Parameters.AddWithValue("@GeoLocation", empGeoLocation);
                 sql_cmd.Parameters.AddWithValue("@RegistrationType", regType);
                 sql_cmd.Parameters.AddWithValue("@TrnsNm", trnsNm);
+                sql_cmd.Parameters.AddWithValue("@GeoLocation", empGeoLocation);
+
+                // 🔧 Explicit OUTPUT parameter
                 SqlParameter outputParam = new SqlParameter("@IsVld", SqlDbType.Int)
                 {
                     Direction = ParameterDirection.Output
@@ -65,7 +88,6 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
                 connection.Open();
                 sql_cmd.ExecuteNonQuery();
 
-                // Get the output parameter value
                 res = Convert.ToInt32(outputParam.Value);
             }
             return res;
@@ -106,24 +128,24 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
                 return res;
             }
         }
-        public List<Capacity> GetRepCapacity()
-        {
-            using (SqlConnection connection = new SqlConnection(_connectionString))
-            {
-                connection.Open();
-                var command = new SqlCommand("SELECT capacityName FROM mst_representationCapacity", connection);
-                var reader = command.ExecuteReader();
-                var capacities = new List<Capacity>();
+        //public List<Capacity> GetRepCapacity()
+        //{
+        //    using (SqlConnection connection = new SqlConnection(_connectionString))
+        //    {
+        //        connection.Open();
+        //        var command = new SqlCommand("SELECT capacityName FROM mst_representationCapacity", connection);
+        //        var reader = command.ExecuteReader();
+        //        var capacities = new List<Capacity>();
 
-                while (reader.Read())
-                {
-                    capacities.Add(new Capacity { CapacityName = reader["CapacityName"].ToString() });
-                }
-                return capacities;
-            }
-        }
+        //        while (reader.Read())
+        //        {
+        //            capacities.Add(new Capacity { CapacityName = reader["CapacityName"].ToString() });
+        //        }
+        //        return capacities;
+        //    }
+        //}
 
-        
+
 
         public List<Title> GetTitle()
         {
@@ -179,6 +201,86 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             }
         }
 
+        public List<CheckInReportRow> GetCheckInReportData(DateTime startDate, DateTime endDate, string department)
+        {
+            var rows = new List<CheckInReportRow>();
+
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                string sql = @"
+                    SELECT
+                        c.Id,
+                        c.dateCreated,
+                        e.Name AS EmployeeName,
+                        e.DepartmentName,
+                        e.Gender,
+                        e.Ethnicity,
+                        e.Occupational_Level,
+                        e.Position,
+                        c.GeoLocation
+                    FROM [dbo].[mst_dailyCheckIn_tbl] c
+                    JOIN [dbo].[Employees] e ON c.Name = e.Id
+                    WHERE c.dateCreated >= @StartDate
+                      AND c.dateCreated < @EndDateExclusive
+                      AND (@Department IS NULL OR e.DepartmentName = @Department)
+                    ORDER BY c.dateCreated ASC;";
+
+                var command = new SqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@StartDate", startDate.Date);
+                // Use an exclusive upper bound (end date + 1 day) so the
+                // whole end day is included regardless of time-of-day values.
+                command.Parameters.AddWithValue("@EndDateExclusive", endDate.Date.AddDays(1));
+                command.Parameters.AddWithValue("@Department", (object)department ?? DBNull.Value);
+
+                connection.Open();
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    rows.Add(new CheckInReportRow
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        DateCreated = Convert.ToDateTime(reader["dateCreated"]),
+                        EmployeeName = reader["EmployeeName"] as string,
+                        DepartmentName = reader["DepartmentName"] as string,
+                        Gender = reader["Gender"] as string,
+                        Ethnicity = reader["Ethnicity"] as string,
+                        OccupationalLevel = reader["Occupational_Level"] as string,
+                        Position = reader["Position"] as string,
+                        GeoLocation = reader["GeoLocation"] as string
+                    });
+                }
+            }
+
+            return rows;
+        }
+
+        // Distinct department names for the report's filter dropdown —
+        // pulled from Employees (not the Departments table) since that's
+        // what GetCheckInReportData actually groups/filters on.
+        public List<string> GetDepartmentNamesForReporting()
+        {
+            var departments = new List<string>();
+
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    "SELECT DISTINCT DepartmentName FROM [dbo].[Employees] WHERE DepartmentName IS NOT NULL ORDER BY DepartmentName ASC",
+                    connection);
+
+                connection.Open();
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    departments.Add(reader["DepartmentName"].ToString());
+                }
+            }
+
+            return departments;
+        }
+
+
+
+
         public List<Department_2> GetDepartments_2()
         {
             using (SqlConnection connection = new SqlConnection(_connectionString))
@@ -217,6 +319,76 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
                 return employees;
             }
         }
+
+        public Dictionary<string, DateTime> GetLastCheckInPerEmployee(string department)
+        {
+            var result = new Dictionary<string, DateTime>();
+
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                string sql = @"
+                    SELECT e.Name AS EmployeeName, MAX(c.dateCreated) AS LastCheckIn
+                    FROM [dbo].[Employees] e
+                    LEFT JOIN [dbo].[mst_dailyCheckIn_tbl] c ON c.Name = e.Id
+                    WHERE (@Department IS NULL OR e.DepartmentName = @Department)
+                    GROUP BY e.Name";
+
+                var command = new SqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@Department", (object)department ?? DBNull.Value);
+
+                connection.Open();
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    string name = reader["EmployeeName"].ToString();
+                    if (reader["LastCheckIn"] != DBNull.Value)
+                    {
+                        result[name] = Convert.ToDateTime(reader["LastCheckIn"]);
+                    }
+                    else
+                    {
+                        // Never checked in at all — represent as DateTime.MinValue
+                        // so it sorts to the top of "most overdue".
+                        result[name] = DateTime.MinValue;
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        public Dictionary<string, int> GetEmployeeHeadcountByDepartment()
+        {
+            var result = new Dictionary<string, int>();
+
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    @"SELECT DepartmentName, COUNT(*) AS Headcount
+                      FROM [dbo].[Employees]
+                      WHERE DepartmentName IS NOT NULL
+                      GROUP BY DepartmentName",
+                    connection);
+
+                connection.Open();
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    result[reader["DepartmentName"].ToString()] = Convert.ToInt32(reader["Headcount"]);
+                }
+            }
+
+            return result;
+        }
+
+        // Last check-in date per employee, across ALL history (not limited
+        // to the report's date filter) — this is what "who hasn't checked
+        // in recently" actually needs; restricting it to the selected range
+        // would make everyone look overdue just because the range is short.
+        // Optional department filter still applies, since that's a
+        // legitimate narrowing, not a time-window distortion.
+
+
         //public List<Department> GetDepartment()
         //{
         //    using (SqlConnection connection = new SqlConnection(_connectionString))

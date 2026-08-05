@@ -18,10 +18,12 @@ namespace FASSET.eCheckIn_v1.Models
             var expirationTime = DateTime.UtcNow.AddSeconds(30); // QR code expires in 30 seconds
             var timestamp = expirationTime.ToString("yyyy-MM-dd-HH-mm-ss");
             TOTP = GenerateTOTP(); // Generate and set the TOTP
-                                   // var url = $"http://172.26.160.1%3A8077?timestamp={timestamp}&otp={TOTP}";web-echeckin.azurewebsites.net
-                                   //var url = "https://localhost:44302/Registration/Index";
-          // var url = $"https://localhost:44302/Registration/Index?timestamp={timestamp}&geolocation={geoLocation}";
-            var url = $"https://fassetecheckinv2.azurewebsites.net/Registration/Index?timestamp={timestamp}&geolocation={geoLocation}";
+                                   //var url = $"http://172.26.160.1%3A8077?timestamp={timestamp}&otp={TOTP}";
+                                   //web - echeckin.azurewebsites.net
+                                   // var url = "https://www.konopestyles.com/";
+            var url = $"https://localhost/Registration/Index?timestamp={timestamp}&geolocation={geoLocation}";
+            // var url = $"http://localhost:62653/Registration/Index?timestamp={timestamp}&geolocation={geoLocation}";
+            //var url = $"https://fassetecheckinv2.azurewebsites.net/Registration/Index?timestamp={timestamp}&geolocation={geoLocation}";
             return url;
         }
 

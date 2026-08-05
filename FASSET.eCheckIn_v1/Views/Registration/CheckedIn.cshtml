@@ -1,0 +1,135 @@
+﻿@{
+    Layout = null;
+    string checkedInName = ViewBag.CheckedInName as string;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>FASSET&reg; - Checked In</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            background-color: #0f7fa3;
+            font-family: Arial, sans-serif;
+        }
+
+        .content {
+            background: #ffffff;
+            max-width: 420px;
+            margin: 60px auto;
+            padding: 0 0 32px 0;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .cld-responsive {
+            width: 100%;
+            display: block;
+        }
+
+        .checkmark-circle {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background-color: #4caf50;
+            color: #fff;
+            font-size: 40px;
+            line-height: 72px;
+            margin: 28px auto 14px auto;
+        }
+
+        h1 {
+            font-size: 22px;
+            margin: 0 24px 6px 24px;
+            color: #1b3f6e;
+        }
+
+        p {
+            font-size: 15px;
+            color: #444;
+            margin: 0 24px 24px 24px;
+        }
+
+        #closeButton {
+            background-color: #4caf50;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 28px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+            #closeButton:hover {
+                background-color: #3d9440;
+            }
+
+        #closeNote {
+            font-size: 13px;
+            color: #777;
+            margin: 14px 24px 0 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <img class="cld-responsive" alt="header-image" src="~/Content/FASSET_HD.jpg" />
+        <div class="checkmark-circle">&#10003;</div>
+        <h1>@(string.IsNullOrEmpty(checkedInName) ? "You're checked in!" : checkedInName + ", you're checked in!")</h1>
+        <p>Thanks &mdash; your check-in has been recorded. You can close this tab now.</p>
+        <button type="button" id="closeButton" onclick="closeThisTab()">Close tab</button>
+        <p id="closeNote" style="display:none;">Your browser didn't allow this tab to close automatically &mdash; you can close it manually now.</p>
+    </div>
+
+    <script>
+        function closeThisTab() {
+            window.close();
+            setTimeout(function () {
+                document.getElementById('closeNote').style.display = 'block';
+            }, 300);
+        }
+
+        function fireConfetti() {
+            if (typeof confetti !== 'function') {
+                return; // CDN failed to load - fail silently, don't break the page
+            }
+
+            var brandColors = ['#1b3f6e', '#f2c40c', '#ffffff', '#0f7fa3'];
+
+            // Center burst
+            confetti({
+                particleCount: 120,
+                spread: 90,
+                origin: { y: 0.5 },
+                colors: brandColors
+            });
+
+            // Side bursts, slightly delayed, for a fuller effect
+            setTimeout(function () {
+                confetti({
+                    particleCount: 60,
+                    angle: 60,
+                    spread: 70,
+                    origin: { x: 0, y: 0.6 },
+                    colors: brandColors
+                });
+                confetti({
+                    particleCount: 60,
+                    angle: 120,
+                    spread: 70,
+                    origin: { x: 1, y: 0.6 },
+                    colors: brandColors
+                });
+            }, 250);
+        }
+
+        window.addEventListener('load', fireConfetti);
+    </script>
+</body>
+</html>

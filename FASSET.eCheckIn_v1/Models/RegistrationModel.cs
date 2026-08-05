@@ -22,6 +22,7 @@ namespace FASSET.eCheckIn_v1.Models
         public List<Department> DepartmentList { get; set; } = new List<Department>();
         public List<Employee> EmployeeList { get; set; } = new List<Employee>();
         public string GeoLocation { get; set; }
+        public string WorkLocation { get; set; }
     }
 
     public class Department

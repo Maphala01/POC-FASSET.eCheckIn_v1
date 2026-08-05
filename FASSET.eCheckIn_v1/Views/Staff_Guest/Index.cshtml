@@ -89,7 +89,7 @@
                     </div>
 
                     <div class="input-animated">
-                        <input placeholder="EMPLOYEE" required="" list="employees" name="Employee" id="employee" type="text" autocomplete="off">
+                        <input placeholder="EMPLOYEE" required="" list="employees" name="Employee" id="employee" type="text" autocomplete="off" onfocus="loadEmployees()">
                         @*<label class="label-employee" for="employee"><span class="content-employee">EMPLOYEE</span></label>*@
                         <datalist id="employees">
                             <option value="">Select an Employee</option>
@@ -108,11 +108,15 @@
                     <input type="hidden" name="Timestamp" id="timestampDisplay">
 
                     <button type="submit" onclick="processOtp()" id="submit-button">Submit</button>
-                </form>
-            </div>
 
+                    @*<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#qrCodeModal">
+                        REQUEST a QR CODE
+                    </button>*@
+                </form>
+
+            </div>
             <div class="overlay-container">
-                <div class="overlay">                 
+                <div class="overlay">
                     <div class="overlay-panel overlay-left">
                         <h1 class="MainHead">FASSET Echeck-In&reg</h1>
                         <img class="pic_pad" src="~/Content/Small_Fasset-.png" />
@@ -138,6 +142,7 @@
                 </div>
             </div>
         </div>
+
         <footer>
             <p>
                 Created with <i class="fa fa-heart"></i> by
@@ -150,6 +155,35 @@
         <script src="~/Content/toastr.min.js"></script>
 
         <script>
+
+            function loadEmployees() {
+                const departmentInput = document.getElementById('department');
+                const departmentValue = departmentInput.value;
+                const employeesDatalist = document.getElementById('employees');
+
+                // Clear existing employees
+                employeesDatalist.innerHTML = '<option value="">Select an Employee</option>';
+
+                if (departmentValue) {
+                    // Send POST request to the controller
+                    $.ajax({
+                        url: '/YourControllerName/GetEmployees',
+                        type: 'POST',
+                        data: { departmentId: departmentValue }, // Replace with actual ID from the input
+                        success: function (response) {
+                            // Populate employees dropdown
+                            response.forEach(employee => {
+                                const option = document.createElement('option');
+                                option.value = employee.EmployeeName;
+                                employeesDatalist.appendChild(option);
+                            });
+                        },
+                        error: function (xhr, status, error) {
+                            console.error('Error loading employees:', error);
+                        }
+                    });
+                }
+            }
 
             $(document).ready(function() {
             // Event listener for department input
