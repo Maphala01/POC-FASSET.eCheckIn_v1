@@ -22,4 +22,20 @@ namespace FASSET.eCheckIn_v1.Models
         public DateTime EndDate { get; set; }
         public string Department { get; set; }
     }
+
+    public class ScheduledDayRow
+    {
+        public int EmployeeId { get; set; }
+        public string EmployeeName { get; set; }
+        public DateTime ScheduleDate { get; set; }
+        public string HostLocation { get; set; }
+    }
+
+    public class SiteInfo
+    {
+        public string SiteName { get; set; }
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public int RadiusMeters { get; set; }
+    }
 }

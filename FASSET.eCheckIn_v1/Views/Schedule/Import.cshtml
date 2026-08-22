@@ -1,0 +1,367 @@
+﻿@model FASSET.eCheckIn_v1.Models.ScheduleImportViewModel
+@{
+    ViewBag.Title = "Import Schedule";
+}
+
+<style>
+    .site-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: flex-start;
+        margin-bottom: 14px;
+    }
+
+    @@media (max-width: 992px) {
+        .site-row {
+            flex-direction: column;
+        }
+
+        .site-select-wrap {
+            flex-basis: 100%;
+            width: 100%;
+        }
+
+        .dropzone {
+            flex-basis: 100%;
+            width: 100%;
+        }
+
+        .remove-row-btn {
+            align-self: flex-end;
+        }
+    }
+
+    .site-select-wrap {
+        flex: 0 1 260px;
+        min-width: 180px;
+    }
+
+    .other-site-input {
+        display: none;
+        margin-top: 6px;
+    }
+
+    .results-heading {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 32px 0 16px;
+        color: #1E293B;
+    }
+
+    .results-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #fff;
+    }
+
+        .results-table th {
+            text-align: left;
+            font-weight: 700;
+            font-size: 13px;
+            color: #1E293B;
+            padding: 10px 14px;
+            border-bottom: 2px solid #E2E8F0;
+        }
+
+        .results-table td {
+            padding: 12px 14px;
+            font-size: 13px;
+            color: #334155;
+            border-bottom: 1px solid #E2E8F0;
+            vertical-align: middle;
+        }
+
+        .results-table tbody tr:nth-child(even) {
+            background: #F8FAFC;
+        }
+
+    .results-header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 32px 0 16px;
+    }
+
+        .results-header-row .results-heading {
+            margin: 0;
+        }
+
+    .clear-results-btn {
+        font-size: 12px;
+        padding: 5px 14px;
+        border-radius: 6px;
+    }
+
+    .pill {
+        display: inline-block;
+        min-width: 28px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 12px;
+        text-align: center;
+    }
+
+    .pill-rows {
+        background: #64748B;
+        color: #fff;
+    }
+
+    .pill-vacant {
+        background: #38BDF8;
+        color: #0B1220;
+    }
+
+    .pill-holiday {
+        background: #FACC15;
+        color: #78350F;
+    }
+
+    .unmatched-names {
+        color: #EA580C;
+        font-weight: 600;
+    }
+
+    .results-error {
+        color: #DC2626;
+        font-weight: 600;
+    }
+
+    .dropzone {
+        flex: 1 1 260px;
+        min-width: 220px;
+        min-height: 60px;
+        border: 2px dashed #cbd5e1;
+        border-radius: 10px;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 16px;
+        cursor: pointer;
+        transition: border-color 0.15s, background 0.15s;
+        font-size: 13px;
+        color: #64748b;
+        text-align: center;
+    }
+
+        .dropzone.dragover {
+            border-color: #6D28D9;
+            background: #F5F3FF;
+            color: #6D28D9;
+        }
+
+        .dropzone.has-file {
+            border-color: #059669;
+            background: #F0FDF4;
+            color: #065F46;
+            font-weight: 600;
+        }
+
+        .dropzone input[type="file"] {
+            display: none;
+        }
+
+    .remove-row-btn {
+        flex: 0 0 auto;
+        align-self: center;
+    }
+
+    .add-row-btn {
+        margin-bottom: 20px;
+    }
+</style>
+
+<div class="container">
+    <h2 class="mb-4">Import Site Schedule(s)</h2>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            @using (Html.BeginForm("Import", "Schedule", FormMethod.Post, new { enctype = "multipart/form-data", id = "importForm" }))
+            {
+                @Html.AntiForgeryToken()
+
+                <div id="siteRowsContainer">
+                    <!-- Rows injected here by JS, starting with 2 -->
+                </div>
+
+                <button type="button" class="btn btn-outline-primary add-row-btn" onclick="addSiteRow()">
+                    + Add Another Site
+                </button>
+                <br />
+                <button type="submit" class="btn btn-primary px-4">Import</button>
+            }
+        </div>
+    </div>
+
+    @if (Model.Results != null && Model.Results.Any())
+    {
+        <div id="importResultsSection">
+            <div class="results-header-row">
+                <h3 class="results-heading">Import Results</h3>
+                <button type="button" class="btn btn-outline-secondary btn-sm clear-results-btn" onclick="clearImportResults()">
+                    Clear Results
+                </button>
+            </div>
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Site</th>
+                        <th>File</th>
+                        <th>Rows Inserted</th>
+                        <th>Vacant Seats</th>
+                        <th>Public Holiday Days</th>
+                        <th>Unmatched Names</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Results)
+                    {
+                        <tr>
+                            <td>@r.HostLocation</td>
+                            <td>@r.FileName</td>
+                            @if (r.Error != null)
+                            {
+                                <td colspan="4" class="results-error">Error: @r.Error</td>
+                            }
+                            else
+                            {
+                                <td><span class="pill pill-rows">@r.RowsInserted</span></td>
+                                <td><span class="pill pill-vacant">@r.VacantSeats</span></td>
+                                <td><span class="pill pill-holiday">@r.PublicHolidayDays</span></td>
+                                <td>
+                                    @if (r.UnmatchedNames != null && r.UnmatchedNames.Any())
+                                    {
+                                        <span class="unmatched-names">@string.Join(", ", r.UnmatchedNames)</span>
+                                    }
+                                    else
+                                    {
+                                        <span>All matched</span>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+      }
+
+</div>
+
+        <script>
+            // Known sites so far — "Other" reveals a free-text box for anything new
+            var KNOWN_SITES = ["Tshwane TVET", "FoodBev", "BankSeta"];
+            var rowCount = 0;
+
+            function buildSiteOptions() {
+                var opts = '<option value="">— Select Site —</option>';
+                KNOWN_SITES.forEach(function (s) {
+                    opts += '<option value="' + s + '">' + s + '</option>';
+                });
+                opts += '<option value="__other__">Other (type below)</option>';
+                return opts;
+            }
+
+            function addSiteRow() {
+                rowCount++;
+                var id = 'row_' + rowCount;
+                var container = document.getElementById('siteRowsContainer');
+
+                var row = document.createElement('div');
+                row.className = 'site-row';
+                row.id = id;
+                row.innerHTML =
+                    '<div class="site-select-wrap">' +
+                    '<select class="form-select" onchange="toggleOtherSite(this)">' + buildSiteOptions() + '</select>' +
+                    '<input type="text" name="hostLocations" class="form-control other-site-input" placeholder="Enter site name" />' +
+                    '<input type="hidden" class="site-hidden-value" name="hostLocations" value="" />' +
+                    '</div>' +
+                    '<div class="dropzone" onclick="this.querySelector(\'input[type=file]\').click()">' +
+                    '<span class="dz-label">Drag file here or click to browse</span>' +
+                    '<input type="file" name="scheduleFiles" accept=".xlsx" onchange="fileChosen(this)" />' +
+                    '</div>' +
+                    '<button type="button" class="btn btn-sm btn-outline-danger remove-row-btn" onclick="removeSiteRow(\'' + id + '\')">✕</button>';
+
+                container.appendChild(row);
+                wireSelectToHidden(row);
+                wireDropzone(row.querySelector('.dropzone'));
+            }
+
+            function removeSiteRow(id) {
+                var row = document.getElementById(id);
+                if (row) row.remove();
+            }
+
+            function toggleOtherSite(select) {
+                var wrap = select.closest('.site-select-wrap');
+                var otherInput = wrap.querySelector('.other-site-input');
+                var hidden = wrap.querySelector('.site-hidden-value');
+
+                if (select.value === '__other__') {
+                    otherInput.style.display = 'block';
+                    select.name = ''; // don't submit the placeholder select itself
+                    hidden.disabled = true;
+                    otherInput.disabled = false;
+                } else {
+                    otherInput.style.display = 'none';
+                    otherInput.disabled = true;
+                    hidden.disabled = false;
+                    hidden.value = select.value;
+                }
+            }
+
+            function wireSelectToHidden(row) {
+                var select = row.querySelector('select');
+                var hidden = row.querySelector('.site-hidden-value');
+                var otherInput = row.querySelector('.other-site-input');
+                select.name = ''; // the hidden field is what actually submits as "hostLocations"
+                otherInput.disabled = true; // exactly one of {hidden, otherInput} is active per row at all times
+                select.addEventListener('change', function () {
+                    if (select.value !== '__other__') hidden.value = select.value;
+                });
+            }
+
+            function fileChosen(input) {
+                var dz = input.closest('.dropzone');
+                var label = dz.querySelector('.dz-label');
+                if (input.files && input.files.length > 0) {
+                    label.textContent = input.files[0].name;
+                    dz.classList.add('has-file');
+                } else {
+                    label.textContent = 'Drag file here or click to browse';
+                    dz.classList.remove('has-file');
+                }
+            }
+
+            function wireDropzone(dz) {
+                var input = dz.querySelector('input[type="file"]');
+
+                dz.addEventListener('dragover', function (e) {
+                    e.preventDefault();
+                    dz.classList.add('dragover');
+                });
+                dz.addEventListener('dragleave', function () {
+                    dz.classList.remove('dragover');
+                });
+                dz.addEventListener('drop', function (e) {
+                    e.preventDefault();
+                    dz.classList.remove('dragover');
+                    if (e.dataTransfer.files.length > 0) {
+                        input.files = e.dataTransfer.files;
+                        fileChosen(input);
+                    }
+                });
+            }
+
+            function clearImportResults() {
+                var section = document.getElementById('importResultsSection');
+                if (section) section.remove();
+            }
+            // Start with 2 rows, as requested
+            document.addEventListener('DOMContentLoaded', function () {
+                addSiteRow();
+                addSiteRow();
+            });
+        </script>

@@ -1,4 +1,11 @@
-﻿<!DOCTYPE html>
+﻿@{
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    Func<string, string, bool> isActive = (ctrl, act) =>
+        string.Equals(currentController, ctrl, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(currentAction, act, StringComparison.OrdinalIgnoreCase);
+}
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8" />
@@ -6,30 +13,346 @@
     <title>FASSET&reg - Echeck-In</title>
     <link rel="icon" href="~/Content/download.ico" type="image/x-icon" />
     <link href="~/Content/toastr.min.css" rel="stylesheet" />
-
-
     @Styles.Render("~/Content/css")
     @Scripts.Render("~/bundles/modernizr")
+    <script src="~/Content/jquery-3.6.0.min.js"></script>
+    <script src="~/Content/toastr.min.js"></script>
+    <style>
+        /* ======================================================
+           🎨 COLOR CONTROLS — change the site's look here.
+           Everything below (nav, background gradient, card,
+           typed text) reads from these variables.
+           ====================================================== */
+        :root {
+            /* the 4 stops the animated background gradient cycles through */
+            --bg-grad-1: #0f7fa3;
+            --bg-grad-2: #0ea5e9;
+            --bg-grad-3: #1b3f6e;
+            --bg-grad-4: #14b8a6;
+            /* top nav bar */
+            --nav-bg: #0F1B30;
+            --nav-text: #94A3B8;
+            --nav-text-hover: #E2E8F0;
+            --nav-text-active: #F1F5F9;
+            --nav-subtitle: #64748B;
+            /* buttons / links / accents */
+            --accent: #38BDF8;
+            --accent-hover: #7DD3FC;
+            --accent-strong: #0284C7;
+            /* a deeper shade of --accent, used where the light
+               background needs more contrast (e.g. typed text) */
+            /* the white content card (Import Site Schedule(s), etc.) */
+            --card-bg: #FFFFFF;
+            --card-text: #1E293B;
+            /* body text sitting directly on the gradient background */
+            --body-text: #1E293B;
+            --body-text-muted: #475569;
+        }
+
+        html, body {
+            min-height: 100%;
+        }
+
+        body {
+            position: relative;
+            color: var(--body-text);
+        }
+
+            /* Animated gradient — this is now the site's main background */
+            body::before {
+                content: "";
+                position: fixed;
+                inset: 0;
+                z-index: -1;
+                background: linear-gradient(120deg, var(--bg-grad-1), var(--bg-grad-2), var(--bg-grad-3), var(--bg-grad-4));
+                background-size: 300% 300%;
+                animation: bgShift 18s ease infinite;
+            }
+
+        @@keyframes bgShift {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .fasset-nav {
+            background: var(--nav-bg);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 0 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+            .fasset-nav .brand {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 12px 0;
+                text-decoration: none;
+            }
+
+            .fasset-nav .brand-icon {
+                width: 34px;
+                height: 34px;
+                border-radius: 8px;
+                background: linear-gradient(135deg, #14B8A6, #0EA5E9);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+            }
+
+                .fasset-nav .brand-icon img {
+                    width: 20px;
+                    height: 20px;
+                    object-fit: contain;
+                }
+
+            .fasset-nav .brand-text {
+                display: flex;
+                flex-direction: column;
+                line-height: 1.15;
+            }
+
+                .fasset-nav .brand-text .title {
+                    color: var(--nav-text-active);
+                    font-weight: 700;
+                    font-size: 14px;
+                }
+
+                .fasset-nav .brand-text .subtitle {
+                    color: var(--nav-subtitle);
+                    font-size: 11px;
+                }
+
+            .fasset-nav .nav-links {
+                display: flex;
+                gap: 6px;
+            }
+
+                .fasset-nav .nav-links a {
+                    color: var(--nav-text);
+                    text-decoration: none;
+                    font-size: 13px;
+                    font-weight: 500;
+                    padding: 20px 16px;
+                    display: inline-block;
+                    border-bottom: 3px solid transparent;
+                    transition: color 0.15s, border-color 0.15s;
+                }
+
+                    .fasset-nav .nav-links a:hover {
+                        color: var(--nav-text-hover);
+                    }
+
+                    .fasset-nav .nav-links a.active {
+                        color: var(--nav-text-active);
+                        border-bottom-color: var(--accent);
+                    }
+
+            .fasset-nav .nav-actions {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .fasset-nav .btn-checkin {
+                background: var(--accent);
+                color: var(--nav-bg);
+                font-weight: 700;
+                font-size: 13px;
+                padding: 9px 20px;
+                border-radius: 8px;
+                text-decoration: none;
+                transition: background 0.15s, transform 0.1s;
+            }
+
+                .fasset-nav .btn-checkin:hover {
+                    background: var(--accent-hover);
+                    transform: translateY(-1px);
+                }
+
+            .fasset-nav .nav-toggle {
+                display: none;
+                background: none;
+                border: none;
+                color: var(--nav-text-active);
+                font-size: 22px;
+                cursor: pointer;
+            }
+
+        @@media (max-width: 700px) {
+            .fasset-nav {
+                flex-wrap: wrap;
+                padding: 10px 16px;
+            }
+
+                .fasset-nav .nav-toggle {
+                    display: block;
+                }
+
+                .fasset-nav .nav-links {
+                    flex-basis: 100%;
+                    flex-direction: column;
+                    gap: 0;
+                    display: none;
+                }
+
+                    .fasset-nav .nav-links.open {
+                        display: flex;
+                    }
+
+                    .fasset-nav .nav-links a {
+                        padding: 12px 4px;
+                        border-bottom: none;
+                        border-left: 3px solid transparent;
+                    }
+
+                        .fasset-nav .nav-links a.active {
+                            border-left-color: var(--accent);
+                            border-bottom-color: transparent;
+                        }
+
+                .fasset-nav .nav-actions {
+                    flex-basis: 100%;
+                    justify-content: flex-start;
+                    padding: 10px 4px 4px;
+                }
+        }
+
+        @@import url('https://fonts.googleapis.com/css?family=Montserrat');
+
+        .typed-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px 16px 64px;
+        }
+
+            .typed-section p {
+                font-family: 'Montserrat', sans-serif;
+                font-size: 2.25rem;
+                font-weight: bold;
+                letter-spacing: 0.05rem;
+                text-align: center;
+                color: var(--body-text);
+                overflow: hidden;
+            }
+
+                .typed-section p span.typed-text {
+                    font-weight: normal;
+                    color: var(--accent-strong);
+                }
+
+                .typed-section p span.cursor {
+                    display: inline-block;
+                    background-color: var(--body-text-muted);
+                    margin-left: 0.1rem;
+                    width: 3px;
+                    animation: blink 1s infinite;
+                }
+
+                    .typed-section p span.cursor.typing {
+                        animation: none;
+                    }
+
+        @@keyframes blink {
+            0% {
+                background-color: var(--body-text-muted);
+            }
+
+            49% {
+                background-color: var(--body-text-muted);
+            }
+
+            50% {
+                background-color: transparent;
+            }
+
+            99% {
+                background-color: transparent;
+            }
+
+            100% {
+                background-color: var(--body-text-muted);
+            }
+        }
+
+        @@media (max-width: 700px) {
+            .typed-section p {
+                font-size: 1.5rem;
+            }
+        }
+
+        .body-content {
+            background: var(--card-bg);
+            color: var(--card-text);
+            border-radius: 14px;
+            margin-top: 28px;
+            margin-bottom: 28px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 28px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            width: 100%;
+            max-width: 960px;
+        }
+
+            .body-content.body-content-wide {
+                max-width: 1600px;
+            }
+    </style>
 </head>
 <body>
+    <nav class="fasset-nav">
+        <a class="brand" href="@Url.Action("Index", "Home")">
+            <span class="brand-icon"><img src="~/Content/Small_Fasset.png" alt="FASSET" /></span>
+            <span class="brand-text">
+                <span class="title">FASSET e-CheckIn</span>
+                <span class="subtitle">Internal Platform &middot; Midrand</span>
+            </span>
+        </a>
+        <button type="button" class="nav-toggle" onclick="document.getElementById('fassetNavLinks').classList.toggle('open')">&#9776;</button>
+        <div class="nav-links" id="fassetNavLinks">
+            <a href="@Url.Action("Index", "Home")" class="@(isActive("Home", "Index") ? "active" : "")">Home</a>
+            <a href="@Url.Action("Index", "Reports")" class="@(isActive("Reports", "Index") ? "active" : "")">Dashboard</a>
+            <a href="@Url.Action("Import", "Schedule")" class="@(isActive("Schedule", "Import") ? "active" : "")">Schedule</a>
+            <a href="@Url.Action("Calendar", "Schedule")" class="@(isActive("Schedule", "Calendar") ? "active" : "")">Calendar</a>
+        </div>
+        <div class="nav-actions">
+            <a href="@Url.Action("Index", "Registration")" class="btn-checkin">Check In</a>
+        </div>
+    </nav>
 
-    <div class="container body-content">
+    <div class="container body-content @(ViewBag.WideContent == true ? "body-content-wide" : "")">
         @RenderBody()
         @*<hr />*@
         @*<footer>
-                <p>&copy; @DateTime.Now.Year - FASSET e-CheckIn</p>
-            </footer>*@
+            <p>&copy; @DateTime.Now.Year - FASSET e-CheckIn</p>
+        </footer>*@
     </div>
-    <script src="~/Content/jquery-3.6.0.min.js"></script>
-    <script src="~/Content/toastr.min.js"></script>
 
+    <div class="typed-section">
+        <p>FASSET is <span class="typed-text"></span><span class="cursor">&nbsp;</span></p>
+    </div>
+
+    @*<script src="~/Content/jquery-3.6.0.min.js"></script>
+    <script src="~/Content/toastr.min.js"></script>*@
     @if (TempData["CheckIn-Success"] != null)
     {
         <script>
         $(document).ready(function () {
             toastr.success('@TempData["CheckIn-Success"]');
         });
-
         toastr.options = {
             'closeButton': false,
             'debug': false,
@@ -48,8 +371,57 @@
         }
         </script>
     }
-    @Scripts.Render("~/bundles/jquery")
+    @*@Scripts.Render("~/bundles/jquery")*@
     @*@Scripts.Render("~/bundles/bootstrap")*@
+    <script>
+        const typedTextSpan = document.querySelector(".typed-text");
+        const cursorSpan = document.querySelector(".cursor");
+        const textArray = [
+            "e-CheckIn",
+            "striving for excellence through hard work",
+            "working with honesty and integrity",
+            "making a difference",
+            "valuing people",
+            "innovation"
+        ];
+        const typingDelay = 60;
+        const erasingDelay = 30;
+        const newTextDelay = 2500;
+        let textArrayIndex = 0;
+        let charIndex = 0;
+
+        function type() {
+            if (charIndex < textArray[textArrayIndex].length) {
+                if (!cursorSpan.classList.contains("typing")) cursorSpan.classList.add("typing");
+                typedTextSpan.textContent += textArray[textArrayIndex].charAt(charIndex);
+                charIndex++;
+                setTimeout(type, typingDelay);
+            } else {
+                cursorSpan.classList.remove("typing");
+                setTimeout(erase, newTextDelay);
+            }
+        }
+
+        function erase() {
+            if (charIndex > 0) {
+                if (!cursorSpan.classList.contains("typing")) cursorSpan.classList.add("typing");
+                typedTextSpan.textContent = textArray[textArrayIndex].substring(0, charIndex - 1);
+                charIndex--;
+                setTimeout(erase, erasingDelay);
+            } else {
+                cursorSpan.classList.remove("typing");
+                textArrayIndex++;
+                if (textArrayIndex >= textArray.length) textArrayIndex = 0;
+                setTimeout(type, typingDelay + 1100);
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            if (textArray.length && typedTextSpan && cursorSpan) {
+                setTimeout(type, newTextDelay + 250);
+            }
+        });
+    </script>
     @RenderSection("scripts", required: false)
 </body>
 </html>

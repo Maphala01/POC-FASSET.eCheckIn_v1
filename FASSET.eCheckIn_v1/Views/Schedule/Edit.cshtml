@@ -1,0 +1,908 @@
+﻿@model FASSET.eCheckIn_v1.Models.ScheduleCalendarViewModel
+@{
+    ViewBag.Title = "Edit Schedule";
+    ViewBag.WideContent = true;
+}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.css" />
+<style>
+    .cal-wide-container {
+        width: 100%;
+    }
+
+    .cal-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+        .cal-toolbar select {
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+        }
+
+    .calendar-main {
+        background: #fff;
+    }
+
+    .fc-event {
+        border-radius: 5px !important;
+        font-size: 12.5px !important;
+        padding: 2px 5px !important;
+        cursor: pointer !important;
+    }
+
+    .fc-day-grid-event {
+        white-space: normal !important;
+    }
+
+    .fc-toolbar h2 {
+        font-size: 1.25rem !important;
+    }
+
+    .fc-manage-day-link {
+        display: block;
+        font-size: 10.5px;
+        font-weight: 600;
+        color: #0284C7;
+        text-decoration: none;
+        text-align: right;
+        padding: 2px 4px 0;
+    }
+
+        .fc-manage-day-link:hover {
+            text-decoration: underline;
+        }
+
+    /* Day-roster modal */
+    .day-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 100000;
+    }
+
+    .day-modal-card {
+        background: #E5E7EB;
+        border-radius: 12px;
+        padding: 34px;
+        width: 980px;
+        max-width: 95vw;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .day-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+    }
+
+    .day-modal-pill {
+        background: #fff;
+        border: 1px solid #94A3B8;
+        border-radius: 8px;
+        padding: 14px 20px;
+        font-weight: 700;
+        font-size: 18px;
+        color: #1E293B;
+        text-align: center;
+        flex: 1;
+    }
+
+    .day-modal-close {
+        background: none;
+        border: none;
+        font-size: 20px;
+        line-height: 1;
+        color: #64748B;
+        cursor: pointer;
+        margin-left: 10px;
+    }
+
+    .replace-toggle-row {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .replace-toggle-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 13.5px;
+        color: #1E293B;
+    }
+
+    .replace-toggle-input {
+        display: none;
+    }
+
+    .replace-toggle-switch {
+        position: relative;
+        width: 42px;
+        height: 24px;
+        background: #94A3B8;
+        border-radius: 999px;
+        transition: background 0.15s ease;
+    }
+
+        .replace-toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            background: #fff;
+            border-radius: 50%;
+            transition: left 0.15s ease;
+        }
+
+    .replace-toggle-input:checked + .replace-toggle-switch {
+        background: #16A34A;
+    }
+
+        .replace-toggle-input:checked + .replace-toggle-switch::after {
+            left: 21px;
+        }
+
+    .day-modal-date-pill {
+        background: #1b3f6e;
+        color: #fff;
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-weight: 700;
+        font-size: 16px;
+        text-align: center;
+        margin-bottom: 16px;
+    }
+
+        .day-modal-date-pill input[type="date"] {
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-weight: 700;
+            font-size: 16px;
+            width: 100%;
+            text-align: center;
+            font-family: inherit;
+        }
+
+            .day-modal-date-pill input[type="date"]::-webkit-calendar-picker-indicator {
+                filter: invert(1);
+                cursor: pointer;
+            }
+
+    .two-panel-row {
+        display: flex;
+        gap: 26px;
+    }
+
+        .two-panel-row.single-panel .panel-col:last-child {
+            display: none;
+        }
+
+        .two-panel-row.single-panel .panel-col:first-child {
+            max-width: 460px;
+            margin: 0 auto;
+        }
+
+    .panel-col {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .roster-row-outer {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .roster-box {
+        flex: 1;
+        background: #9CA3AF;
+        border-radius: 8px;
+        padding: 14px;
+        min-height: 90px;
+        max-height: 340px;
+        overflow-y: auto;
+    }
+
+        .roster-box.drag-hover {
+            outline: 2px dashed #1b3f6e;
+            outline-offset: -2px;
+        }
+
+    .roster-row {
+        position: relative;
+        background: #1b3f6e;
+        color: #fff;
+        border-radius: 8px;
+        padding: 15px 32px 15px 16px;
+        font-weight: 600;
+        font-size: 15px;
+        margin-bottom: 10px;
+        cursor: grab;
+    }
+
+        .roster-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .roster-row[draggable="false"] {
+            cursor: default;
+            opacity: 0.85;
+        }
+
+        .roster-row.drag-target {
+            outline: 2px solid #FDE047;
+            outline-offset: 1px;
+        }
+
+        .roster-row.roster-row-vacant {
+            background: #0EA5E9;
+        }
+
+    .roster-remove {
+        position: absolute;
+        top: 6px;
+        right: 8px;
+        background: none;
+        border: none;
+        color: rgba(255,255,255,0.75);
+        font-size: 13px;
+        line-height: 1;
+        cursor: pointer;
+        padding: 2px;
+    }
+
+        .roster-remove:hover {
+            color: #fff;
+        }
+
+    .roster-empty {
+        padding: 14px 10px;
+        font-size: 12.5px;
+        color: #F1F5F9;
+        text-align: center;
+    }
+
+    .roster-add-btn {
+        flex-shrink: 0;
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        border: none;
+        background: #1b3f6e;
+        color: #fff;
+        font-size: 26px;
+        line-height: 1;
+        cursor: pointer;
+        align-self: flex-start;
+    }
+
+        .roster-add-btn:hover {
+            background: #14304f;
+        }
+
+    .roster-add-picker {
+        display: none;
+        margin-top: 10px;
+        position: relative;
+    }
+
+    .day-modal-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 18px;
+    }
+
+        .day-modal-actions button {
+            flex: 1;
+            padding: 14px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            color: #fff;
+        }
+
+    .btn-day-update {
+        background: #1b3f6e;
+    }
+
+        .btn-day-update:hover {
+            background: #14304f;
+        }
+
+    .btn-day-generate {
+        background: #16A34A;
+    }
+
+        .btn-day-generate:hover:not(:disabled) {
+            background: #15803D;
+        }
+
+        .btn-day-generate:disabled {
+            background: #9CA3AF;
+            cursor: not-allowed;
+        }
+
+    /* Searchable custom dropdown */
+    .roster-add-picker select.searchable-select {
+        display: none !important;
+    }
+
+    .dropdown-select {
+        background-color: #fff;
+        border-radius: 6px;
+        border: solid 1px #cbd5e1;
+        box-shadow: 0 2px 5px 0 rgba(155,155,155,0.3);
+        box-sizing: border-box;
+        cursor: pointer;
+        display: block;
+        font-size: 14px;
+        font-weight: normal;
+        height: 42px;
+        line-height: 40px;
+        outline: none;
+        padding-left: 14px;
+        padding-right: 30px;
+        position: relative;
+        text-align: left !important;
+        transition: all 0.2s ease-in-out;
+        user-select: none;
+        white-space: nowrap;
+        width: 100%;
+    }
+
+        .dropdown-select:active,
+        .dropdown-select.open {
+            border-color: #0284C7;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05) inset;
+        }
+
+        .dropdown-select:after {
+            height: 0;
+            width: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 4px solid #64748B;
+            transition: all 0.125s ease-in-out;
+            content: '';
+            display: block;
+            margin-top: -2px;
+            pointer-events: none;
+            position: absolute;
+            right: 12px;
+            top: 50%;
+        }
+
+        .dropdown-select.open:after {
+            transform: rotate(-180deg);
+        }
+
+        .dropdown-select.open .list {
+            transform: scale(1);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .dropdown-select.open .option {
+            cursor: pointer;
+        }
+
+        .dropdown-select .list {
+            box-sizing: border-box;
+            transition: all 0.15s cubic-bezier(0.25, 0, 0.25, 1.75), opacity 0.1s linear;
+            transform: scale(0.75);
+            transform-origin: 50% 0;
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.09);
+            background-color: #fff;
+            border-radius: 6px;
+            margin-top: 4px;
+            padding: 3px 0;
+            opacity: 0;
+            pointer-events: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 999;
+            border: 1px solid #ddd;
+        }
+
+            .dropdown-select .list:hover .option:not(:hover) {
+                background-color: transparent !important;
+            }
+
+        .dropdown-select .dd-search {
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0.5rem;
+        }
+
+        .dropdown-select .dd-searchbox {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            outline: none;
+            font-size: 13px;
+        }
+
+            .dropdown-select .dd-searchbox:focus {
+                border-color: #0284C7;
+            }
+
+        .dropdown-select .list ul {
+            padding: 0;
+            margin: 0;
+        }
+
+        .dropdown-select .option {
+            cursor: default;
+            font-weight: 400;
+            line-height: 36px;
+            outline: none;
+            padding-left: 14px;
+            padding-right: 20px;
+            text-align: left;
+            transition: all 0.2s;
+            list-style: none;
+            font-size: 13.5px;
+        }
+
+            .dropdown-select .option:hover,
+            .dropdown-select .option:focus {
+                background-color: #F0F9FF !important;
+            }
+
+            .dropdown-select .option.selected {
+                font-weight: 700;
+                color: #0284C7;
+            }
+</style>
+
+<div class="container cal-wide-container">
+    <h2 class="mb-4">Edit Schedule</h2>
+
+    <div class="cal-toolbar">
+        <select id="siteSelect">
+            @foreach (var site in Model.HostLocations)
+            {
+                <option value="@site" selected="@(site == Model.SelectedHostLocation)">@site</option>
+            }
+        </select>
+    </div>
+
+    <div class="calendar-main">
+        <div id="scheduleCalendar"></div>
+    </div>
+</div>
+
+<div id="dayModal" class="day-modal">
+    <div class="day-modal-card">
+        <div class="day-modal-header">
+            <div id="modalSiteLabel" class="day-modal-pill"></div>
+            <button type="button" id="modalCloseBtn" class="day-modal-close">&times;</button>
+        </div>
+
+        <div class="replace-toggle-row">
+            <label class="replace-toggle-label">
+                <span>Replace</span>
+                <input type="checkbox" id="replaceToggle" class="replace-toggle-input" />
+                <span class="replace-toggle-switch"></span>
+            </label>
+        </div>
+
+        <div id="twoPanelRow" class="two-panel-row single-panel">
+            <div class="panel-col">
+                <div id="modalDateLabelLeft" class="day-modal-date-pill"></div>
+                <div class="roster-row-outer">
+                    <div id="dayRowsListLeft" class="roster-box"></div>
+                    <button type="button" id="rosterAddToggleBtnLeft" class="roster-add-btn" title="Add">+</button>
+                </div>
+                <div id="rosterAddPickerLeft" class="roster-add-picker">
+                    <select id="addEmployeeSelectLeft" class="searchable-select"></select>
+                </div>
+            </div>
+
+            <div class="panel-col">
+                <div class="day-modal-date-pill">
+                    <input type="date" id="rightDateInput" />
+                </div>
+                <div class="roster-row-outer">
+                    <div id="dayRowsListRight" class="roster-box"></div>
+                    <button type="button" id="rosterAddToggleBtnRight" class="roster-add-btn" title="Add">+</button>
+                </div>
+                <div id="rosterAddPickerRight" class="roster-add-picker">
+                    <select id="addEmployeeSelectRight" class="searchable-select"></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="day-modal-actions">
+            <button type="button" id="updateDayBtn" class="btn-day-update">Update</button>
+            <button type="button" id="generateCalendarBtn" class="btn-day-generate" disabled>Generate Calendar</button>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.js"></script>
+
+<script>
+    var MAX_VISIBLE_OPTIONS = 3;
+
+    // ---- Searchable custom dropdown ----
+    function create_custom_dropdowns() {
+        $('select.searchable-select').each(function () {
+            if (!$(this).next().hasClass('dropdown-select')) {
+                $(this).after('<div class="dropdown-select wide" tabindex="0"><span class="current">— Select Employee —</span><div class="list"><ul></ul></div></div>');
+                var dropdown = $(this).next();
+                dropdown.find('.list ul').before('<div class="dd-search"><input autocomplete="off" class="dd-searchbox" type="text" placeholder="Search..."></div>');
+            }
+        });
+    }
+
+    // Open/close
+    $(document).on('click', '.dropdown-select', function (event) {
+        if ($(event.target).hasClass('dd-searchbox')) return;
+        $('.dropdown-select').not($(this)).removeClass('open');
+        $(this).toggleClass('open');
+    });
+
+    // Close when clicking outside
+    $(document).on('click', function (event) {
+        if ($(event.target).closest('.dropdown-select').length === 0) {
+            $('.dropdown-select').removeClass('open');
+        }
+    });
+
+    // Option click
+    $(document).on('click', '.dropdown-select .option', function () {
+        $(this).closest('.list').find('.selected').removeClass('selected');
+        $(this).addClass('selected');
+        $(this).closest('.dropdown-select').find('.current').text($(this).text());
+        $(this).closest('.dropdown-select').prev('select').val($(this).data('value')).trigger('change');
+        $(this).closest('.dropdown-select').removeClass('open');
+    });
+
+    $(function () {
+        var token = $('input[name="__RequestVerificationToken"]').val();
+        var currentSite = $('#siteSelect').val();
+        var allEmployees = []; // site-scoped, refreshed via AJAX whenever the site changes
+
+        var leftDate = null, rightDate = null;
+        var leftRows = [], rightRows = [];
+
+        create_custom_dropdowns();
+        refreshSiteEmployees();
+
+        function refreshSiteEmployees() {
+            $.ajax({
+                url: '@Url.Action("EmployeesForSite", "Schedule")',
+                type: 'GET',
+                data: { hostLocation: currentSite },
+                success: function (data) {
+                    allEmployees = data || [];
+                    renderEmployeeOptions('#addEmployeeSelectLeft', '');
+                    renderEmployeeOptions('#addEmployeeSelectRight', '');
+                }
+            });
+        }
+
+        // Rebuilds both the real underlying <select> (full list, used for
+        // model binding via .val()) and the visible custom list (Vacant
+        // Seat + at most MAX_VISIBLE_OPTIONS matching employees).
+        function renderEmployeeOptions(selectId, searchTerm) {
+            var select = $(selectId);
+            var dropdown = select.next('.dropdown-select');
+            var term = (searchTerm || '').toLowerCase();
+
+            select.empty();
+            select.append('<option value="">— Select Employee —</option>');
+            select.append('<option value="vacant">Vacant Seat</option>');
+            allEmployees.forEach(function (emp) {
+                select.append('<option value="' + emp.id + '">' + emp.name + '</option>');
+            });
+
+            var listUl = dropdown.find('.list ul');
+            listUl.empty();
+
+            if ('vacant seat'.indexOf(term) > -1) {
+                listUl.append('<li class="option" data-value="vacant">Vacant Seat</li>');
+            }
+
+            allEmployees
+                .filter(function (e) { return e.name.toLowerCase().indexOf(term) > -1; })
+                .slice(0, MAX_VISIBLE_OPTIONS)
+                .forEach(function (emp) {
+                    listUl.append('<li class="option" data-value="' + emp.id + '">' + emp.name + '</li>');
+                });
+        }
+
+        // Search — scoped per-dropdown, re-renders the top-N matches on
+        // every keystroke rather than just show/hiding a fixed list
+        $(document).on('keyup', '#addEmployeeSelectLeft ~ .dropdown-select .dd-searchbox', function () {
+            renderEmployeeOptions('#addEmployeeSelectLeft', $(this).val());
+        });
+        $(document).on('keyup', '#addEmployeeSelectRight ~ .dropdown-select .dd-searchbox', function () {
+            renderEmployeeOptions('#addEmployeeSelectRight', $(this).val());
+        });
+
+        $('#scheduleCalendar').fullCalendar({
+            header: {
+                left: 'prev,next today',
+                center: 'title',
+                right: ''
+            },
+            defaultView: 'month',
+            editable: false,
+            eventLimit: false,
+            events: function (start, end, timezone, callback) {
+                $.ajax({
+                    url: '@Url.Action("CalendarEvents", "Schedule")',
+                    type: 'GET',
+                    data: {
+                        hostLocation: currentSite,
+                        start: start.format('YYYY-MM-DD'),
+                        end: end.format('YYYY-MM-DD')
+                    },
+                    success: function (data) {
+                        callback(data);
+                    }
+                });
+            },
+            dayRender: function (date, cell) {
+                var link = $('<a href="#" class="fc-manage-day-link"></a>');
+                link.on('click', function (e) {
+                    e.preventDefault();
+                    openDayModal(date.format('YYYY-MM-DD'));
+                });
+                cell.append(link);
+            },
+            eventClick: function (event) {
+                openDayModal(moment(event.start).format('YYYY-MM-DD'));
+            }
+        });
+
+        $('#siteSelect').on('change', function () {
+            currentSite = $(this).val();
+            $('#scheduleCalendar').fullCalendar('refetchEvents');
+            refreshSiteEmployees();
+        });
+
+        function resetAddPicker(panel) {
+            var selectId = panel === 'left' ? '#addEmployeeSelectLeft' : '#addEmployeeSelectRight';
+            var toggleId = panel === 'left' ? '#rosterAddToggleBtnLeft' : '#rosterAddToggleBtnRight';
+            var pickerId = panel === 'left' ? '#rosterAddPickerLeft' : '#rosterAddPickerRight';
+
+            renderEmployeeOptions(selectId, '');
+            $(selectId).val('');
+            $(selectId).next('.dropdown-select').find('.current').text('— Select Employee —');
+            $(pickerId).hide();
+            $(toggleId).text('+');
+        }
+
+        function openDayModal(dateStr) {
+            leftDate = dateStr;
+            rightDate = moment(dateStr).add(1, 'days').format('YYYY-MM-DD');
+
+            $('#modalDateLabelLeft').text(moment(leftDate).format('D MMMM YYYY'));
+            $('#rightDateInput').val(rightDate);
+            $('#modalSiteLabel').text(currentSite);
+            $('#generateCalendarBtn').prop('disabled', true);
+
+            $('#replaceToggle').prop('checked', false);
+            $('#twoPanelRow').addClass('single-panel');
+
+            resetAddPicker('left');
+            resetAddPicker('right');
+
+            loadPanel('left', leftDate);
+            loadPanel('right', rightDate);
+
+            $('#dayModal').css('display', 'flex');
+        }
+
+        $('#replaceToggle').on('change', function () {
+            $('#twoPanelRow').toggleClass('single-panel', !this.checked);
+        });
+
+        function loadPanel(panel, dateStr) {
+            $.ajax({
+                url: '@Url.Action("DayRoster", "Schedule")',
+                type: 'GET',
+                data: { hostLocation: currentSite, date: dateStr },
+                success: function (data) {
+                    var rows = data.success ? data.entries : [];
+                    if (panel === 'left') { leftRows = rows; } else { rightRows = rows; }
+                    renderPanel(panel);
+                }
+            });
+        }
+
+        function renderPanel(panel) {
+            var rows = panel === 'left' ? leftRows : rightRows;
+            var container = $(panel === 'left' ? '#dayRowsListLeft' : '#dayRowsListRight');
+            container.empty();
+
+            container.off('dragover drop dragleave');
+            container.on('dragover', function (e) {
+                e.preventDefault();
+                container.addClass('drag-hover');
+            });
+            container.on('dragleave', function () {
+                container.removeClass('drag-hover');
+            });
+
+            if (rows.length === 0) {
+                container.append('<div class="roster-empty">No one scheduled yet</div>');
+                return;
+            }
+
+            rows.forEach(function (row, idx) {
+                var label = row.isVacant ? 'Vacant Seat' : row.employeeName;
+                var canDrag = row.id > 0;
+                var rowEl = $('<div class="roster-row"></div>').text(label);
+                if (row.isVacant) rowEl.addClass('roster-row-vacant');
+                rowEl.attr('draggable', canDrag);
+                rowEl.attr('data-panel', panel);
+
+                var removeBtn = $('<button type="button" class="roster-remove">&times;</button>');
+                removeBtn.on('click', function (e) {
+                    e.stopPropagation();
+                    rows.splice(idx, 1);
+                    renderPanel(panel);
+                });
+                rowEl.append(removeBtn);
+
+                if (canDrag) {
+                    rowEl.on('dragstart', function (e) {
+                        e.originalEvent.dataTransfer.setData('text/plain', JSON.stringify({ panel: panel, id: row.id }));
+                    });
+                    rowEl.on('dragover', function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        $(this).addClass('drag-target');
+                    });
+                    rowEl.on('dragleave', function () {
+                        $(this).removeClass('drag-target');
+                    });
+                    rowEl.on('drop', function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        $(this).removeClass('drag-target');
+                        container.removeClass('drag-hover');
+
+                        var dragged = JSON.parse(e.originalEvent.dataTransfer.getData('text/plain'));
+                        if (dragged.panel === panel) return;
+                        swapEntries(dragged.id, row.id);
+                    });
+                }
+
+                container.append(rowEl);
+            });
+        }
+
+        function swapEntries(id1, id2) {
+            $.ajax({
+                url: '@Url.Action("SwapEntries", "Schedule")',
+                type: 'POST',
+                data: { __RequestVerificationToken: token, id1: id1, id2: id2 },
+                success: function (result) {
+                    if (result.success) {
+                        loadPanel('left', leftDate);
+                        loadPanel('right', rightDate);
+                        $('#generateCalendarBtn').prop('disabled', false);
+                    } else {
+                        alert(result.message || 'Could not swap those two.');
+                    }
+                },
+                error: function () {
+                    alert('Something went wrong swapping — please try again.');
+                }
+            });
+        }
+
+        $('#rightDateInput').on('change', function () {
+            rightDate = $(this).val();
+            loadPanel('right', rightDate);
+        });
+
+        $('#rosterAddToggleBtnLeft').on('click', function () {
+            $('#rosterAddPickerLeft').toggle();
+            $(this).text($('#rosterAddPickerLeft').is(':visible') ? '\u2212' : '+');
+        });
+        $('#rosterAddToggleBtnRight').on('click', function () {
+            $('#rosterAddPickerRight').toggle();
+            $(this).text($('#rosterAddPickerRight').is(':visible') ? '\u2212' : '+');
+        });
+
+        $('#addEmployeeSelectLeft').on('change', function () {
+            addToPanel('left', $(this).val());
+            resetAddPicker('left');
+        });
+        $('#addEmployeeSelectRight').on('change', function () {
+            addToPanel('right', $(this).val());
+            resetAddPicker('right');
+        });
+
+        function addToPanel(panel, val) {
+            if (!val) return;
+            var rows = panel === 'left' ? leftRows : rightRows;
+
+            if (val === 'vacant') {
+                rows.push({ id: 0, employeeId: null, employeeName: 'Vacant Seat', isVacant: true });
+            } else {
+                var empId = parseInt(val, 10);
+                var emp = allEmployees.filter(function (e) { return e.id === empId; })[0];
+                if (!emp) return;
+                rows.push({ id: 0, employeeId: empId, employeeName: emp.name, isVacant: false });
+            }
+            renderPanel(panel);
+        }
+
+        $('#modalCloseBtn').on('click', function () {
+            $('#dayModal').css('display', 'none');
+        });
+
+        $('#updateDayBtn').on('click', function () {
+            saveOnePanel(leftDate, leftRows, function () {
+                saveOnePanel(rightDate, rightRows, function () {
+                    $('#generateCalendarBtn').prop('disabled', false);
+                });
+            });
+        });
+
+        function saveOnePanel(dateStr, rows, onDone) {
+            var payload = rows.map(function (r) {
+                return { Id: r.id, EmployeeId: r.employeeId, IsVacant: r.isVacant };
+            });
+
+            $.ajax({
+                url: '@Url.Action("SaveDayRoster", "Schedule")',
+                type: 'POST',
+                data: {
+                    __RequestVerificationToken: token,
+                    hostLocation: currentSite,
+                    date: dateStr,
+                    rowsJson: JSON.stringify(payload)
+                },
+                success: function (result) {
+                    if (result.success) {
+                        if (onDone) onDone();
+                    } else {
+                        alert(result.message || ('Could not save changes for ' + dateStr));
+                    }
+                },
+                error: function () {
+                    alert('Something went wrong saving ' + dateStr + ' — please try again.');
+                }
+            });
+        }
+
+        $('#generateCalendarBtn').on('click', function () {
+            $('#scheduleCalendar').fullCalendar('refetchEvents');
+            $('#dayModal').css('display', 'none');
+            $(this).prop('disabled', true);
+        });
+    });
+</script>

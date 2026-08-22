@@ -1,461 +1,614 @@
 ﻿@model FASSET.eCheckIn_v1.Models.RegistrationModel
 
 @{
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    Layout = "~/Views/Shared/_LayoutBare.cshtml";
+    ViewBag.Title = "eCheck-In Form";
+
     var departmentsList = ViewBag.Departments as List<FASSET.eCheckIn_v1.Models.Department>;
     var employeesList = ViewBag.Employees as List<FASSET.eCheckIn_v1.Models.Employee>;
 }
 
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width" />
-    <title>FASSET&reg; - EcheckIn Form</title>
-    <link href="~/Content/StyleSheet.css" rel="stylesheet" />
-    <link href="~/Content/select2.min.css" rel="stylesheet" />
-    <style>
-        body {
-            background-color: #0f7fa3;
+<link href="~/Content/StyleSheet.css" rel="stylesheet" />
+<link href="~/Content/select2.min.css" rel="stylesheet" />
+<style>
+    body {
+        background: linear-gradient(120deg, #0f7fa3, #0ea5e9, #1b3f6e, #14b8a6);
+        background-size: 300% 300%;
+        animation: bodyGradientShift 16s ease infinite;
+    }
+
+    @@keyframes bodyGradientShift {
+        0% {
+            background-position: 0% 50%;
         }
 
-        .content {
-            background: #ffffff;
-            max-width: 420px;
-            margin: 60px auto;
-            padding: 0 0 28px 0;
-            border-radius: 14px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-            overflow: hidden;
-            text-align: center;
-            position: relative;
+        50% {
+            background-position: 100% 50%;
         }
 
-        .cld-responsive {
-            width: 100%;
-            display: block;
+        100% {
+            background-position: 0% 50%;
         }
+    }
 
-        .form-title {
-            font-size: 22px;
-            margin: 16px 0 10px 0;
-        }
+    .content {
+        background: #ffffff;
+        max-width: 420px;
+        margin: 60px auto 0 auto;
+        padding: 0 0 28px 0;
+        border-radius: 14px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        overflow: hidden;
+        text-align: center;
+        position: relative;
+    }
 
-        .clock-box {
-            display: inline-block;
-            border: 1px solid #d5d5d5;
-            border-radius: 10px;
-            padding: 8px 20px;
-            font-size: 17px;
-            font-weight: bold;
-            margin: 0 auto 18px auto;
-        }
+    .cld-responsive {
+        width: 100%;
+        display: block;
+    }
 
-        #checkinFormContainer {
-            padding: 0 28px;
-        }
+    .form-title {
+        font-size: 22px;
+        margin: 16px 0 10px 0;
+    }
 
-        .pin-section {
-            margin-bottom: 18px;
-        }
+    .clock-box {
+        display: inline-block;
+        border: 1px solid #d5d5d5;
+        border-radius: 10px;
+        padding: 8px 20px;
+        font-size: 17px;
+        font-weight: bold;
+        margin: 0 auto 18px auto;
+    }
 
-        #pinMeButton {
-            background-color: #1b3f6e;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 18px;
-            font-size: 15px;
-            cursor: pointer;
-            transition: background-color 0.2s ease, opacity 0.2s ease;
-        }
+    #checkinFormContainer {
+        padding: 0 28px;
+    }
 
-            #pinMeButton:hover:not(:disabled) {
-                background-color: #14304f;
-                animation: pinGlitch 0.2s linear infinite;
-                text-shadow: 2px 0 #ff2079, -2px 0 #21e6ff;
-            }
+    .pin-section {
+        margin-bottom: 18px;
+    }
 
-        @@keyframes pinGlitch {
-            0% {
-                transform: translate(0, 0);
-            }
+    #pinMeButton {
+        background-color: #1b3f6e;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 18px;
+        font-size: 15px;
+        cursor: pointer;
+        transition: background-color 0.2s ease, opacity 0.2s ease;
+    }
 
-            20% {
-                transform: translate(-2px, 1px);
-            }
-
-            40% {
-                transform: translate(2px, -1px);
-            }
-
-            60% {
-                transform: translate(-1px, -2px);
-            }
-
-            80% {
-                transform: translate(1px, 2px);
-            }
-
-            100% {
-                transform: translate(0, 0);
-            }
-        }
-
-        #pinMeButton.loading {
+        #pinMeButton:hover:not(:disabled) {
+            background-color: #14304f;
             animation: pinGlitch 0.2s linear infinite;
             text-shadow: 2px 0 #ff2079, -2px 0 #21e6ff;
         }
 
-        #pinMeButton.pinned {
-            background-color: #2e9e4a;
+    @@keyframes pinGlitch {
+        0% {
+            transform: translate(0, 0);
         }
 
-        #pinMeButton:disabled {
+        20% {
+            transform: translate(-2px, 1px);
+        }
+
+        40% {
+            transform: translate(2px, -1px);
+        }
+
+        60% {
+            transform: translate(-1px, -2px);
+        }
+
+        80% {
+            transform: translate(1px, 2px);
+        }
+
+        100% {
+            transform: translate(0, 0);
+        }
+    }
+
+    #pinMeButton.loading {
+        animation: pinGlitch 0.2s linear infinite;
+        text-shadow: 2px 0 #ff2079, -2px 0 #21e6ff;
+    }
+
+    #pinMeButton.pinned {
+        background-color: #2e9e4a;
+    }
+
+    #pinMeButton:disabled {
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+        #pinMeButton:disabled.pinned {
+            opacity: 0.9;
+        }
+
+    #pinStatus {
+        display: block;
+        margin-top: 8px;
+        font-size: 13px;
+        color: #555;
+    }
+
+    .alert {
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 14px;
+        text-align: left;
+    }
+
+    .alert-danger {
+        background-color: #fbe6e6;
+        color: #a33333;
+        border: 1px solid #eec9c9;
+    }
+
+    .alert-success {
+        background-color: #e6f6e9;
+        color: #2e7d3a;
+        border: 1px solid #c7e9cd;
+    }
+
+    .input-animated {
+        text-align: left;
+        margin-bottom: 14px;
+    }
+
+    #submit-button {
+        width: 100%;
+        padding: 12px;
+        background-color: #4caf50;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: opacity 0.2s ease;
+    }
+
+        #submit-button:disabled {
+            background-color: #a9c9ab;
             cursor: not-allowed;
-            pointer-events: none;
         }
 
-            #pinMeButton:disabled.pinned {
-                opacity: 0.9;
-            }
+    /* Submit progress overlay */
+    .submit-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 63, 82, 0.92);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 999999 !important;
+    }
 
-        #pinStatus {
-            display: block;
-            margin-top: 8px;
-            font-size: 13px;
-            color: #555;
+    .submit-overlay-card {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 36px 40px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .spinner {
+        width: 54px;
+        height: 54px;
+        border: 5px solid #e0e0e0;
+        border-top-color: #1b3f6e;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-bottom: 18px;
+    }
+
+    @@keyframes spin {
+        to {
+            transform: rotate(360deg);
         }
+    }
 
-        .alert {
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-size: 14px;
-            text-align: left;
-        }
+    .submit-progress-track {
+        width: 220px;
+        height: 8px;
+        background: #e6e6e6;
+        border-radius: 5px;
+        overflow: hidden;
+        margin-bottom: 14px;
+    }
 
-        .alert-danger {
-            background-color: #fbe6e6;
-            color: #a33333;
-            border: 1px solid #eec9c9;
-        }
+    .submit-progress-fill {
+        height: 100%;
+        width: 0%;
+        background: #1b3f6e;
+        border-radius: 5px;
+        transition: width 0.4s ease;
+    }
 
-        .alert-success {
-            background-color: #e6f6e9;
-            color: #2e7d3a;
-            border: 1px solid #c7e9cd;
-        }
+    .submit-counter {
+        font-size: 16px;
+        font-weight: bold;
+        color: #1b3f6e;
+    }
 
-        .input-animated {
-            text-align: left;
-            margin-bottom: 14px;
-        }
+    @@import url('https://fonts.googleapis.com/css?family=Montserrat');
 
-        #submit-button {
-            width: 100%;
-            padding: 12px;
-            background-color: #4caf50;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: opacity 0.2s ease;
-        }
+    .typed-section {
+/*        background: #0f7fa3 !important;
+*/        display: flex;
+          justify-content: center;
+          align-items: center;
+          margin-top: -110px !important;
+          padding: 0px 16px 32px;
+    }
 
-            #submit-button:disabled {
-                background-color: #a9c9ab;
-                cursor: not-allowed;
-            }
-
-        /* Submit progress overlay */
-        .submit-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(15, 63, 82, 0.92);
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 999999 !important;
-        }
-
-        .submit-overlay-card {
-            background: #ffffff;
-            border-radius: 14px;
-            padding: 36px 40px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .spinner {
-            width: 54px;
-            height: 54px;
-            border: 5px solid #e0e0e0;
-            border-top-color: #1b3f6e;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-bottom: 18px;
-        }
-
-        @@keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .submit-progress-track {
-            width: 220px;
-            height: 8px;
-            background: #e6e6e6;
-            border-radius: 5px;
-            overflow: hidden;
-            margin-bottom: 14px;
-        }
-
-        .submit-progress-fill {
-            height: 100%;
-            width: 0%;
-            background: #1b3f6e;
-            border-radius: 5px;
-            transition: width 0.4s ease;
-        }
-
-        .submit-counter {
-            font-size: 16px;
+        .typed-section p {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.75rem;
             font-weight: bold;
-            color: #1b3f6e;
+            letter-spacing: 0.05rem;
+            text-align: center;
+            color: #1E293B;
+            margin: 0;
+            line-height: 1.4;
         }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="content">
-            <img class="cld-responsive" alt="header-image" src="~/Content/FASSET_HD.jpg" />
-            <h1 class="form-title">FASSET&reg; eCheck-In</h1>
-            <div class="clock-box">
-                <div id="digit_clock_time"></div>
-                <div id="digit_clock_date"></div>
-            </div>
 
-            @if (ViewBag.Message != null)
-            {
-                <div class="alert alert-@(ViewBag.MessageType == "error" ? "danger" : "success")" style="margin: 0 24px 16px 24px;">@ViewBag.Message</div>
+            .typed-section p span.typed-text {
+                font-weight: normal;
+                color: gold;
             }
 
-            <div id="checkinFormContainer">
-                <form class="Form" action="@Url.Action("SubmitRegistration", "Registration")" method="post" onsubmit="return handleSubmit(event)">
-                    @Html.AntiForgeryToken()
+            .typed-section p span.cursor {
+                display: inline-block;
+                background-color: #475569;
+                margin-left: 0.1rem;
+                width: 3px;
+                animation: blink 1s infinite;
+            }
 
-                    <div class="pin-section">
-                        <button type="button" id="pinMeButton" onclick="pinLocation()">
-                            <svg id="pinIcon" width="14" height="16" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:-3px; margin-right:6px;">
-                                <line x1="12" y1="14" x2="12" y2="27" stroke="#fff" stroke-width="2" stroke-linecap="round" />
-                                <circle cx="12" cy="8" r="8" fill="#e53935" />
-                                <circle cx="9.5" cy="5.5" r="2.2" fill="#ffffff" opacity="0.55" />
-                            </svg>Pin Me
-                        </button>
-                        <span id="pinStatus">Location required before you can submit</span>
-                    </div>
+                .typed-section p span.cursor.typing {
+                    animation: none;
+                }
 
-                    <div class="input-animated">
-                        <input placeholder="DEPARTMENT" required list="departments" name="Department" id="department" type="text">
-                        <label class="label-department" for="department"><span class="content-department">DEPARTMENT</span></label>
-                        <datalist id="departments">
-                            <option value="">Select a Department</option>
-                            @if (departmentsList != null)
-                            {
-                                foreach (var department in departmentsList.Take(5))
-                                {
-                                    <option value="@department.DepartmentName">@department.DepartmentName</option>
-                                }
-                            }
-                        </datalist>
-                    </div>
+    @@keyframes blink {
+        0% {
+            background-color: #475569;
+        }
 
-                    <div class="input-animated">
-                        <input placeholder="EMPLOYEE" required list="employees" name="Employee" id="employee" type="text">
-                        <label class="label-employee" for="employee"><span class="content-employee">EMPLOYEE</span></label>
-                        <datalist id="employees">
-                            <option value="">Select an Employee</option>
-                            @if (employeesList != null)
-                            {
-                                foreach (var employee in employeesList.Take(5))
-                                {
-                                    <option value="@employee.EmployeeName">@employee.EmployeeName</option>
-                                }
-                            }
-                        </datalist>
-                    </div>
+        49% {
+            background-color: #475569;
+        }
 
-                    <input type="hidden" name="GeoLocation" id="geoLocationDisplay">
-                    <input type="hidden" name="Timestamp" id="timestampDisplay">
+        50% {
+            background-color: transparent;
+        }
 
-                    <button type="submit" id="submit-button" disabled>Submit</button>
+        99% {
+            background-color: transparent;
+        }
 
-                    @Html.Hidden("qrCodeImgUrl", TempData["QRCodeImageUrl"])
-                    @Html.Hidden("QRCodeTotp", TempData["TOTP"])
-                </form>
-            </div>
+        100% {
+            background-color: #475569;
+        }
+    }
+
+    @@media (max-width: 500px) {
+        .typed-section p {
+            font-size: 1.25rem;
+        }
+    }
+</style>
+
+<div class="container">
+    <div class="content">
+        <img class="cld-responsive" alt="header-image" src="~/Content/FASSET_HD.jpg" />
+        <h1 class="form-title">FASSET&reg; eCheck-In</h1>
+        <div class="clock-box">
+            <div id="digit_clock_time"></div>
+            <div id="digit_clock_date"></div>
         </div>
-    </div>
 
-    <div id="submitOverlay" class="submit-overlay">
-        <div class="submit-overlay-card">
-            <div class="spinner"></div>
-            <div class="submit-progress-track">
-                <div id="submitProgressFill" class="submit-progress-fill"></div>
-            </div>
-            <div id="submitCounter" class="submit-counter">Submitting&hellip;</div>
-        </div>
-    </div>
-
-    <script src="~/Content/jquery-3.6.0.min.js"></script>
-    <script src="~/Content/select2.min.js"></script>
-
-    <script>
-        $(document).ready(function () {
-            $('#department').on('input', function () {
-                var inputVal = $(this).val();
-                if (inputVal.length > 0) {
-                    $.ajax({
-                        url: '@Url.Action("GetDepartments", "Registration")',
-                        type: 'GET',
-                        data: { term: inputVal },
-                        success: function (data) {
-                            var departmentList = $('#departments');
-                            departmentList.empty();
-                            departmentList.append('<option value="">Select a Department</option>');
-                            $.each(data, function (index, department) {
-                                departmentList.append('<option value="' + department.DepartmentName + '">' + department.DepartmentName + '</option>');
-                            });
+        @if (ViewBag.Message != null)
+        {
+            <script>
+                    $(function () {
+                        var msg = @Html.Raw(Json.Encode(ViewBag.Message.ToString()));
+                        var type = '@ViewBag.MessageType';
+                        if (type === 'error') {
+                            toastr.error(msg);
+                        } else {
+                            toastr.success(msg);
                         }
                     });
+            </script>
+            <script>
+                toastr.options = {
+                    'closeButton': false,
+                    'debug': false,
+                    'newestOnTop': false,
+                    'progressBar': true,
+                    'positionClass': 'toast-top-full-width',
+                    'preventDuplicates': false,
+                    'showDuration': '1000',
+                    'hideDuration': '1000',
+                    'timeOut': '5000',
+                    'extendedTimeOut': '1000',
+                    'showEasing': 'swing',
+                    'hideEasing': 'linear',
+                    'showMethod': 'fadeIn',
+                    'hideMethod': 'slideUp',
                 }
-            });
+            </script>
+        }
 
-            $('#employee').on('input', function () {
-                var inputVal = $(this).val();
-                if (inputVal.length > 0) {
-                    $.ajax({
-                        url: '@Url.Action("GetEmployees", "Registration")',
-                        type: 'GET',
-                        data: { term: inputVal },
-                        success: function (data) {
-                            var employeeList = $('#employees');
-                            employeeList.empty();
-                            employeeList.append('<option value="">Select an Employee</option>');
-                            $.each(data, function (index, employee) {
-                                employeeList.append('<option value="' + employee.EmployeeName + '">' + employee.EmployeeName + '</option>');
-                            });
+        <div id="checkinFormContainer">
+            <form class="Form" action="@Url.Action("SubmitRegistration", "Registration")" method="post" onsubmit="return handleSubmit(event)">
+                @Html.AntiForgeryToken()
+
+                <div class="pin-section">
+                    <button type="button" id="pinMeButton" onclick="pinLocation()">
+                        <svg id="pinIcon" width="14" height="16" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:-3px; margin-right:6px;">
+                            <line x1="12" y1="14" x2="12" y2="27" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+                            <circle cx="12" cy="8" r="8" fill="#e53935" />
+                            <circle cx="9.5" cy="5.5" r="2.2" fill="#ffffff" opacity="0.55" />
+                        </svg>Pin Me
+                    </button>
+                    <span id="pinStatus">Location required before you can submit</span>
+                </div>
+
+                <div class="input-animated">
+                    <input placeholder="DEPARTMENT" required list="departments" name="Department" id="department" type="text">
+                    <label class="label-department" for="department"><span class="content-department">DEPARTMENT</span></label>
+                    <datalist id="departments">
+                        <option value="">Select a Department</option>
+                        @if (departmentsList != null)
+                        {
+                            foreach (var department in departmentsList.Take(5))
+                            {
+                                <option value="@department.DepartmentName">@department.DepartmentName</option>
+                            }
                         }
-                    });
-                }
-            });
+                    </datalist>
+                </div>
 
-            $('#department').on('change', function () {
-                $('#employee').focus();
-            });
+                <div class="input-animated">
+                    <input placeholder="EMPLOYEE" required list="employees" name="Employee" id="employee" type="text">
+                    <label class="label-employee" for="employee"><span class="content-employee">EMPLOYEE</span></label>
+                    <datalist id="employees">
+                        <option value="">Select an Employee</option>
+                        @if (employeesList != null)
+                        {
+                            foreach (var employee in employeesList.Take(5))
+                            {
+                                <option value="@employee.EmployeeName">@employee.EmployeeName</option>
+                            }
+                        }
+                    </datalist>
+                </div>
 
-            $('#employee').on('change', function () {
-                $('#submit-button').focus();
-            });
+                <input type="hidden" name="GeoLocation" id="geoLocationDisplay">
+                <input type="hidden" name="Timestamp" id="timestampDisplay">
+
+                <button type="submit" id="submit-button" disabled>Submit</button>
+
+                @Html.Hidden("qrCodeImgUrl", TempData["QRCodeImageUrl"])
+                @Html.Hidden("QRCodeTotp", TempData["TOTP"])
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="typed-section">
+    <p>FASSET is <span class="typed-text"></span><span class="cursor">&nbsp;</span></p>
+</div>
+
+<div id="submitOverlay" class="submit-overlay">
+    <div class="submit-overlay-card">
+        <div class="spinner"></div>
+        <div class="submit-progress-track">
+            <div id="submitProgressFill" class="submit-progress-fill"></div>
+        </div>
+        <div id="submitCounter" class="submit-counter">Submitting&hellip;</div>
+    </div>
+</div>
+
+<script src="~/Content/select2.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        $('#department').on('input', function () {
+            var inputVal = $(this).val();
+            if (inputVal.length > 0) {
+                $.ajax({
+                    url: '@Url.Action("GetDepartments", "Registration")',
+                    type: 'GET',
+                    data: { term: inputVal },
+                    success: function (data) {
+                        var departmentList = $('#departments');
+                        departmentList.empty();
+                        departmentList.append('<option value="">Select a Department</option>');
+                        $.each(data, function (index, department) {
+                            departmentList.append('<option value="' + department.DepartmentName + '">' + department.DepartmentName + '</option>');
+                        });
+                    }
+                });
+            }
         });
 
-        function pinLocation() {
-            var pinButton = document.getElementById('pinMeButton');
-            var pinStatus = document.getElementById('pinStatus');
-            var submitButton = document.getElementById('submit-button');
-
-            if (!navigator.geolocation) {
-                pinStatus.textContent = "Geolocation isn't supported on this browser.";
-                return;
+        $('#employee').on('input', function () {
+            var inputVal = $(this).val();
+            if (inputVal.length > 0) {
+                $.ajax({
+                    url: '@Url.Action("GetEmployees", "Registration")',
+                    type: 'GET',
+                    data: { term: inputVal },
+                    success: function (data) {
+                        var employeeList = $('#employees');
+                        employeeList.empty();
+                        employeeList.append('<option value="">Select an Employee</option>');
+                        $.each(data, function (index, employee) {
+                            employeeList.append('<option value="' + employee.EmployeeName + '">' + employee.EmployeeName + '</option>');
+                        });
+                    }
+                });
             }
+        });
 
+        $('#department').on('change', function () {
+            $('#employee').focus();
+        });
+
+        $('#employee').on('change', function () {
+            $('#submit-button').focus();
+        });
+    });
+
+    function pinLocation() {
+        var pinButton = document.getElementById('pinMeButton');
+        var pinStatus = document.getElementById('pinStatus');
+        var submitButton = document.getElementById('submit-button');
+
+        if (!navigator.geolocation) {
+            pinStatus.textContent = "Geolocation isn't supported on this browser.";
+            return;
+        }
+
+        pinButton.disabled = true;
+        pinButton.classList.add('loading');
+        pinStatus.textContent = "Getting your location\u2026";
+
+        navigator.geolocation.getCurrentPosition(function (position) {
+            var latitude = position.coords.latitude;
+            var longitude = position.coords.longitude;
+            document.getElementById('geoLocationDisplay').value = latitude + ',' + longitude;
+
+            // Lock the Pin Me button permanently once a location has been captured
+            pinButton.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:-2px; margin-right:6px;"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>Location Pinned';
+            pinButton.classList.remove('loading');
+            pinButton.classList.add('pinned');
             pinButton.disabled = true;
-            pinButton.classList.add('loading');
-            pinStatus.textContent = "Getting your location\u2026";
+            pinStatus.textContent = "You\u2019re all set \u2014 location captured.";
+            submitButton.disabled = false;
+        }, function (error) {
+            // Only re-enable on failure, so the user can retry
+            pinButton.classList.remove('loading');
+            pinButton.disabled = false;
+            pinStatus.textContent = "Couldn't get your location (" + error.message + "). Please try again.";
+        });
+    }
 
-            navigator.geolocation.getCurrentPosition(function (position) {
-                var latitude = position.coords.latitude;
-                var longitude = position.coords.longitude;
-                document.getElementById('geoLocationDisplay').value = latitude + ',' + longitude;
+    function handleSubmit(event) {
+        event.preventDefault();
+        document.getElementById('timestampDisplay').value = new Date().toISOString();
 
-                // Lock the Pin Me button permanently once a location has been captured
-                pinButton.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:-2px; margin-right:6px;"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>Location Pinned';
-                pinButton.classList.remove('loading');
-                pinButton.classList.add('pinned');
-                pinButton.disabled = true;
-                pinStatus.textContent = "You\u2019re all set \u2014 location captured.";
-                submitButton.disabled = false;
-            }, function (error) {
-                // Only re-enable on failure, so the user can retry
-                pinButton.classList.remove('loading');
-                pinButton.disabled = false;
-                pinStatus.textContent = "Couldn't get your location (" + error.message + "). Please try again.";
-            });
-        }
+        var form = event.target;
+        var overlay = document.getElementById('submitOverlay');
+        var counterEl = document.getElementById('submitCounter');
+        var fillEl = document.getElementById('submitProgressFill');
 
-        function handleSubmit(event) {
-            event.preventDefault();
-            document.getElementById('timestampDisplay').value = new Date().toISOString();
+        overlay.style.display = 'flex';
 
-            var form = event.target;
-            var overlay = document.getElementById('submitOverlay');
-            var counterEl = document.getElementById('submitCounter');
-            var fillEl = document.getElementById('submitProgressFill');
+        var steps = [
+            { pct: 25, label: 'Checking details\u2026', count: 3 },
+            { pct: 60, label: 'Recording check-in\u2026', count: 2 },
+            { pct: 90, label: 'Almost done\u2026', count: 1 },
+            { pct: 100, label: 'Done!', count: 0 }
+        ];
+        var i = 0;
 
-            overlay.style.display = 'flex';
-
-            var steps = [
-                { pct: 25, label: 'Checking details\u2026', count: 3 },
-                { pct: 60, label: 'Recording check-in\u2026', count: 2 },
-                { pct: 90, label: 'Almost done\u2026', count: 1 },
-                { pct: 100, label: 'Done!', count: 0 }
-            ];
-            var i = 0;
-
-            function nextStep() {
-                if (i < steps.length) {
-                    fillEl.style.width = steps[i].pct + '%';
-                    counterEl.textContent = steps[i].label + ' (' + steps[i].count + ')';
-                    i++;
-                    setTimeout(nextStep, 500);
-                } else {
-                    // Submit the real form - SubmitRegistration will redirect
-                    // to the CheckedIn confirmation page on success.
-                    HTMLFormElement.prototype.submit.call(form);
-                }
+        function nextStep() {
+            if (i < steps.length) {
+                fillEl.style.width = steps[i].pct + '%';
+                counterEl.textContent = steps[i].label + ' (' + steps[i].count + ')';
+                i++;
+                setTimeout(nextStep, 500);
+            } else {
+                // Submit the real form - SubmitRegistration will redirect
+                // to the CheckedIn confirmation page on success.
+                HTMLFormElement.prototype.submit.call(form);
             }
-            nextStep();
-
-            return false;
         }
+        nextStep();
 
-        function currentTime() {
-            var date = new Date();
-            var hour = date.getHours();
-            var min = date.getMinutes();
-            var sec = date.getSeconds();
-            var midday = (hour >= 12) ? "PM" : "AM";
-            hour = (hour == 0) ? 12 : ((hour > 12) ? (hour - 12) : hour);
+        return false;
+    }
 
-            hour = (hour < 10) ? "0" + hour : hour;
-            min = (min < 10) ? "0" + min : min;
-            sec = (sec < 10) ? "0" + sec : sec;
+    function currentTime() {
+        var date = new Date();
+        var hour = date.getHours();
+        var min = date.getMinutes();
+        var sec = date.getSeconds();
+        var midday = (hour >= 12) ? "PM" : "AM";
+        hour = (hour == 0) ? 12 : ((hour > 12) ? (hour - 12) : hour);
 
-            document.getElementById("digit_clock_time").innerText = hour + " : " + min + " : " + sec + " " + midday;
+        hour = (hour < 10) ? "0" + hour : hour;
+        min = (min < 10) ? "0" + min : min;
+        sec = (sec < 10) ? "0" + sec : sec;
 
-            var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-            var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            document.getElementById("digit_clock_date").innerHTML = days[date.getDay()] + ", " + date.getDate() + " " + months[date.getMonth()] + " " + date.getFullYear();
+        document.getElementById("digit_clock_time").innerText = hour + " : " + min + " : " + sec + " " + midday;
 
-            setTimeout(currentTime, 1000);
+        var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        document.getElementById("digit_clock_date").innerHTML = days[date.getDay()] + ", " + date.getDate() + " " + months[date.getMonth()] + " " + date.getFullYear();
+
+        setTimeout(currentTime, 1000);
+    }
+
+    currentTime();
+
+    const typedTextSpan = document.querySelector(".typed-text");
+    const cursorSpan = document.querySelector(".cursor");
+    const textArray = [
+        "e-CheckIn",
+        "striving for excellence through hard work",
+        "working with honesty and integrity",
+        "making a difference",
+        "valuing people",
+        "innovation"
+    ];
+    const typingDelay = 60;
+    const erasingDelay = 30;
+    const newTextDelay = 2500;
+    let textArrayIndex = 0;
+    let charIndex = 0;
+
+    function type() {
+        if (charIndex < textArray[textArrayIndex].length) {
+            if (!cursorSpan.classList.contains("typing")) cursorSpan.classList.add("typing");
+            typedTextSpan.textContent += textArray[textArrayIndex].charAt(charIndex);
+            charIndex++;
+            setTimeout(type, typingDelay);
+        } else {
+            cursorSpan.classList.remove("typing");
+            setTimeout(erase, newTextDelay);
         }
+    }
 
-        currentTime();
-    </script>
-</body>
-</html>
+    function erase() {
+        if (charIndex > 0) {
+            if (!cursorSpan.classList.contains("typing")) cursorSpan.classList.add("typing");
+            typedTextSpan.textContent = textArray[textArrayIndex].substring(0, charIndex - 1);
+            charIndex--;
+            setTimeout(erase, erasingDelay);
+        } else {
+            cursorSpan.classList.remove("typing");
+            textArrayIndex++;
+            if (textArrayIndex >= textArray.length) textArrayIndex = 0;
+            setTimeout(type, typingDelay + 1100);
+        }
+    }
+
+    if (textArray.length && typedTextSpan && cursorSpan) {
+        setTimeout(type, newTextDelay + 250);
+    }
+</script>

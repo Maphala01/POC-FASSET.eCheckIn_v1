@@ -1,0 +1,405 @@
+﻿@model FASSET.eCheckIn_v1.Models.ScheduleCalendarViewModel
+@{
+    ViewBag.Title = "Schedule Calendar";
+    ViewBag.WideContent = true;
+    var monthNames = new[] { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
+    var firstOfMonth = new DateTime(Model.Year, Model.Month, 1);
+    var daysInMonth = DateTime.DaysInMonth(Model.Year, Model.Month);
+    // Convert Sunday=0..Saturday=6 to a Monday-first offset (Mon=0..Sun=6)
+    int firstDayOffset = ((int)firstOfMonth.DayOfWeek + 6) % 7;
+    var prevMonth = Model.Month == 1 ? 12 : Model.Month - 1;
+    var prevYear = Model.Month == 1 ? Model.Year - 1 : Model.Year;
+    var nextMonth = Model.Month == 12 ? 1 : Model.Month + 1;
+    var nextYear = Model.Month == 12 ? Model.Year + 1 : Model.Year;
+
+    // Build the month as a list of weeks (each week = exactly 7 day numbers,
+    // 0 meaning "no day here"), so every week renders as its own independent
+    // grid row and can never misalign with another week's row.
+    var weeks = new List<int[]>();
+    var currentWeek = new int[7];
+    int col = 0;
+    for (int i = 0; i < firstDayOffset; i++) { currentWeek[col] = 0; col++; }
+    for (int day = 1; day <= daysInMonth; day++)
+    {
+        currentWeek[col] = day;
+        col++;
+        if (col == 7) { weeks.Add(currentWeek); currentWeek = new int[7]; col = 0; }
+    }
+    if (col > 0)
+    {
+        for (int i = col; i < 7; i++) { currentWeek[i] = 0; }
+        weeks.Add(currentWeek);
+    }
+}
+<style>
+    .cal-wide-container {
+        width: 100%;
+    }
+
+    .cal-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+    }
+
+        .cal-toolbar select {
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+        }
+
+    .cal-nav {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .cal-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1E293B;
+        min-width: 170px;
+        text-align: center;
+    }
+
+    .cal-dow-row {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+        margin-bottom: 4px;
+    }
+
+    .cal-dow {
+        text-align: center;
+        font-size: 14px;
+        font-weight: 700;
+        color: #64748B;
+        padding: 4px 0;
+    }
+
+    .cal-week-row {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+        margin-bottom: 6px;
+    }
+
+    .cal-cell {
+        height: 220px;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        padding: 10px;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+        .cal-cell.empty {
+            background: transparent;
+            border: none;
+        }
+
+    .cal-daynum {
+        font-size: 16px;
+        font-weight: 700;
+        color: #334155;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+        margin-bottom: 5px;
+    }
+
+    .cal-add-link {
+        font-size: 11px;
+        color: #0284C7;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .cal-entry-list {
+        overflow-y: auto;
+        flex: 1;
+    }
+
+        .cal-entry-list::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .cal-entry-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+    .cal-entry {
+        font-size: 13.5px;
+        line-height: 1.8;
+        padding: 2px 7px;
+        border-radius: 5px;
+        margin-bottom: 3px;
+        text-decoration: none;
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+        .cal-entry.vacant {
+            background: #E0F2FE;
+            color: #0369A1;
+        }
+
+        .cal-entry.holiday {
+            background: #FEF9C3;
+            color: #854D0E;
+        }
+
+        .cal-entry.person {
+            background: #F1F5F9;
+            color: #1E293B;
+        }
+
+    .btn-cal {
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        color: #334155;
+        text-decoration: none;
+        font-size: 13px;
+    }
+</style>
+
+<div class="container cal-wide-container">
+    <h2 class="mb-4">Schedule Calendar</h2>
+
+    <div class="cal-toolbar">
+        <form method="get" action="@Url.Action("Calendar", "Schedule")" style="display:flex; gap:10px; align-items:center;">
+            <select name="hostLocation" onchange="this.form.submit()">
+                @foreach (var site in Model.HostLocations)
+                {
+                    <option value="@site" selected="@(site == Model.SelectedHostLocation)">@site</option>
+                }
+            </select>
+            <input type="hidden" name="year" value="@Model.Year" />
+            <input type="hidden" name="month" value="@Model.Month" />
+        </form>
+
+        <div class="cal-nav">
+            <a class="btn-cal" href="@Url.Action("Calendar", "Schedule", new { hostLocation = Model.SelectedHostLocation, year = prevYear, month = prevMonth })">&larr; Prev</a>
+            <div class="cal-title">@monthNames[Model.Month - 1] @Model.Year</div>
+            <a class="btn-cal" href="@Url.Action("Calendar", "Schedule", new { hostLocation = Model.SelectedHostLocation, year = nextYear, month = nextMonth })">Next &rarr;</a>
+        </div>
+
+        <button type="button" id="openLoginModalBtn" class="btn-cal" style="background:#38BDF8; color:#0B1220; border-color:#38BDF8; font-weight:700;">
+            Edit
+        </button>
+    </div>
+
+    <div class="cal-dow-row">
+        @foreach (var dow in new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" })
+        {
+            <div class="cal-dow">@dow</div>
+        }
+    </div>
+
+    @foreach (var week in weeks)
+    {
+        <div class="cal-week-row">
+            @foreach (var day in week)
+            {
+                if (day == 0)
+                {
+                    <div class="cal-cell empty"></div>
+                }
+                else
+                {
+                    var thisDate = new DateTime(Model.Year, Model.Month, day);
+                    List<FASSET.eCheckIn_v1.Models.ScheduleModel> dayEntries;
+                    Model.EntriesByDate.TryGetValue(thisDate, out dayEntries);
+
+                    <div class="cal-cell">
+                        <div class="cal-daynum">
+                            <span>@day</span>
+                            @*<a class="cal-add-link" href="@Url.Action("Edit", "Schedule", new { hostLocation = Model.SelectedHostLocation, year = Model.Year, month = Model.Month, date = thisDate.ToString("yyyy-MM-dd") })">+ add</a>*@
+                        </div>
+                        <div class="cal-entry-list">
+                            @if (dayEntries != null)
+                            {
+                                foreach (var entry in dayEntries.OrderBy(e => e.SeatSlot))
+                                {
+                                    var cssClass = entry.IsPublicHoliday ? "holiday" : (entry.IsVacant ? "vacant" : "person");
+                                    var label = entry.IsPublicHoliday
+                                        ? "Public Holiday"
+                                        : (entry.IsVacant ? ("S" + entry.SeatSlot + ": Vacant") : ("S" + entry.SeatSlot + ": " + entry.EmployeeNameRaw));
+
+                                    <a class="cal-entry @cssClass"
+                                       href="@Url.Action("Edit", "Schedule", new { id = entry.Id, hostLocation = Model.SelectedHostLocation, year = Model.Year, month = Model.Month })"
+                                       title="@label">@label</a>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>
+<div id="loginModal" class="login-modal-overlay">
+    <div class="login-modal-card">
+        <div class="login-modal-header">
+            <strong>Sign In</strong>
+            <button type="button" id="loginModalCloseBtn" class="login-modal-close">&times;</button>
+        </div>
+        <div id="loginModalError" class="login-modal-error" style="display:none;"></div>
+        <div class="login-field">
+            <label>Username</label>
+            <input type="text" id="loginUsername" autocomplete="username" />
+        </div>
+        <div class="login-field">
+            <label>Password</label>
+            <input type="password" id="loginPassword" autocomplete="current-password" />
+        </div>
+        <button type="button" id="loginSubmitBtn" class="login-submit">Sign In</button>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+<style>
+    .login-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 100000;
+    }
+
+    .login-modal-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 26px;
+        width: 320px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .login-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+    }
+
+        .login-modal-header strong {
+            font-size: 15px;
+            color: #1E293B;
+        }
+
+    .login-modal-close {
+        background: none;
+        border: none;
+        font-size: 20px;
+        line-height: 1;
+        color: #64748B;
+        cursor: pointer;
+    }
+
+    .login-modal-error {
+        background: #fbe6e6;
+        color: #a33333;
+        border: 1px solid #eec9c9;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 12.5px;
+        margin-bottom: 12px;
+    }
+
+    .login-field {
+        margin-bottom: 14px;
+    }
+
+        .login-field label {
+            display: block;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 4px;
+        }
+
+        .login-field input {
+            width: 100%;
+            padding: 9px 11px;
+            border-radius: 7px;
+            border: 1px solid #cbd5e1;
+            box-sizing: border-box;
+        }
+
+    .login-submit {
+        width: 100%;
+        padding: 11px;
+        background: #1b3f6e;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+        .login-submit:hover {
+            background: #14304f;
+        }
+</style>
+
+<script src="~/Content/jquery-3.6.0.min.js"></script>
+<script>
+    $(function () {
+        var token = $('input[name="__RequestVerificationToken"]').val();
+
+        $('#openLoginModalBtn').on('click', function () {
+            $('#loginModalError').hide();
+            $('#loginUsername').val('');
+            $('#loginPassword').val('');
+            $('#loginModal').css('display', 'flex');
+            $('#loginUsername').focus();
+        });
+
+        $('#loginModalCloseBtn').on('click', function () {
+            $('#loginModal').css('display', 'none');
+        });
+
+        $('#loginSubmitBtn').on('click', doLogin);
+        $('#loginPassword').on('keydown', function (e) {
+            if (e.key === 'Enter') doLogin();
+        });
+
+        function doLogin() {
+            $.ajax({
+                url: '@Url.Action("Login", "Account")',
+                type: 'POST',
+                data: {
+                    __RequestVerificationToken: token,
+                    username: $('#loginUsername').val(),
+                    password: $('#loginPassword').val(),
+                    returnUrl: '@Url.Action("Edit", "Schedule")'
+                },
+                success: function (result) {
+                    if (result.success) {
+                        window.location.href = result.redirectUrl;
+                    } else {
+                        $('#loginModalError').text(result.message || 'Invalid username or password.').show();
+                    }
+                },
+                error: function () {
+                    $('#loginModalError').text('Something went wrong — please try again.').show();
+                }
+            });
+        }
+    });
+</script>

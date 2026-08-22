@@ -1,0 +1,95 @@
+﻿@{
+    Layout = "~/Views/Shared/_LayoutBare.cshtml";
+    ViewBag.Title = "Sign In";
+}
+<style>
+    .login-wrap {
+        max-width: 380px;
+        margin: 80px auto;
+        background: #fff;
+        border-radius: 14px;
+        padding: 32px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+
+        .login-wrap h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1E293B;
+            margin: 0 0 20px;
+            text-align: center;
+        }
+
+    .login-field {
+        margin-bottom: 16px;
+    }
+
+        .login-field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 5px;
+        }
+
+        .login-field input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            box-sizing: border-box;
+        }
+
+    .login-error {
+        background: #fbe6e6;
+        color: #a33333;
+        border: 1px solid #eec9c9;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 13px;
+        margin-bottom: 16px;
+    }
+
+    .login-submit {
+        width: 100%;
+        padding: 12px;
+        background: #1b3f6e;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 15px;
+        cursor: pointer;
+    }
+
+        .login-submit:hover {
+            background: #14304f;
+        }
+</style>
+
+<div class="login-wrap">
+    <h2>Sign In</h2>
+
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="login-error">@ViewBag.ErrorMessage</div>
+    }
+
+    @using (Html.BeginForm("Login", "Account", FormMethod.Post))
+    {
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+
+        <div class="login-field">
+            <label>Username</label>
+            <input type="text" name="username" required autofocus />
+        </div>
+
+        <div class="login-field">
+            <label>Password</label>
+            <input type="password" name="password" required />
+        </div>
+
+        <button type="submit" class="login-submit">Sign In</button>
+    }
+</div>
