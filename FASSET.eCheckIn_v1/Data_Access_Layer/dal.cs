@@ -1,4 +1,4 @@
-﻿using FASSET.eCheckIn_v1.Models;
+using FASSET.eCheckIn_v1.Models;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -31,46 +31,6 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
         {
             return SaveRegistration(model.Employee, model.Department, model.qrCodeImgUrl, model.QRCodeTotp, model.GeoLocation, "CheckInEmployee", "Manual_Registration");
         }
-
-        //private int SaveRegistration(string name, string department, string qrCodeImageUrl, string totp, string geoLocation, string trnsNm,string regType)
-        //private int SaveRegistration(string name, string department, string qrCodeImageUrl, string totp, string geoLocation, string trnsNm, string regType)
-        //{
-
-        //    string empName = name;
-        //    string empDepartment = department;
-        //    string empQrCodeImageUrl = qrCodeImageUrl;
-        //    string empGeoLocation = geoLocation;
-        //    string empTOTP = "NULL";
-
-
-        //    int res = 0;
-        //    using (SqlConnection connection = new SqlConnection(_connectionString))
-        //    {
-        //        //res = Convert.ToInt32(outputParam.Value);
-        //        SqlCommand sql_cmd = new SqlCommand("mst_spCheckInEmployee", connection);
-        //        sql_cmd.CommandType = CommandType.StoredProcedure;
-
-        //        sql_cmd.Parameters.AddWithValue("@Name", empName);
-        //        sql_cmd.Parameters.AddWithValue("@Department", empDepartment);
-        //        sql_cmd.Parameters.AddWithValue("@QRCodeImageUrl", empQrCodeImageUrl);
-        //        sql_cmd.Parameters.AddWithValue("@RegistrationType", regType);
-        //        sql_cmd.Parameters.AddWithValue("@TrnsNm", trnsNm);
-        //        sql_cmd.Parameters.AddWithValue("@GeoLocation", empGeoLocation);
-
-        //        // 🔧 Explicit OUTPUT parameter
-        //        SqlParameter outputParam = new SqlParameter("@IsVld", SqlDbType.Int)
-        //        {
-        //            Direction = ParameterDirection.Output
-        //        };
-        //        sql_cmd.Parameters.Add(outputParam);
-
-        //        connection.Open();
-        //        sql_cmd.ExecuteNonQuery();
-
-        //        res = Convert.ToInt32(outputParam.Value);
-        //    }
-        //    return res;
-        //}
 
         private int SaveRegistration(string name, string department, string qrCodeImageUrl, string totp, string geoLocation, string trnsNm, string regType)
         {
@@ -112,6 +72,11 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
         }
 
 
+        // NOTE: intentionally NOT filtered to IsActive=1 - this feeds
+        // schedule-vs-actual reporting math (expected days, By Month's
+        // Planned Seat-Days, etc.) for a specific historical date range.
+        // An employee who has since gone inactive but was scheduled during
+        // that range should still show up correctly in those numbers.
         public List<ScheduledDayRow> GetScheduledDays(DateTime startDate, DateTime endDateExclusive, string department)
         {
             var rows = new List<ScheduledDayRow>();
@@ -286,6 +251,10 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             }
         }
 
+        // NOTE: intentionally NOT filtered to IsActive=1 - this is historical
+        // check-in report data for a specific date range. An employee who
+        // has since gone inactive still genuinely checked in on those past
+        // dates, and that shouldn't disappear from the report.
         public List<CheckInReportRow> GetCheckInReportData(DateTime startDate, DateTime endDate, string department)
         {
             var rows = new List<CheckInReportRow>();
@@ -342,6 +311,9 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
         // Distinct department names for the report's filter dropdown —
         // pulled from Employees (not the Departments table) since that's
         // what GetCheckInReportData actually groups/filters on.
+        // NOTE: intentionally NOT filtered to IsActive=1 - if an inactive
+        // employee's department has real historical check-in data, that
+        // department should still be selectable in the report's filter.
         public List<string> GetDepartmentNamesForReporting()
         {
             var departments = new List<string>();
@@ -391,7 +363,7 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
-                var command = new SqlCommand("SELECT DISTINCT Name FROM Employees ORDER BY Name ASC", connection);
+                var command = new SqlCommand("SELECT DISTINCT Name FROM Employees WHERE IsActive = 1 ORDER BY Name ASC", connection);
                 var reader = command.ExecuteReader();
 
                 var employees = new List<Employee_2>();
@@ -405,6 +377,9 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             }
         }
 
+        // NOTE: intentionally NOT filtered to IsActive=1 - "last check-in"
+        // is inherently historical (and for someone who went inactive,
+        // knowing when they last checked in is exactly the useful part).
         public Dictionary<string, DateTime> GetLastCheckInPerEmployee(string department)
         {
             var result = new Dictionary<string, DateTime>();
@@ -442,6 +417,9 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             return result;
         }
 
+        // Filtered to IsActive=1: this headcount is the denominator for
+        // "Attendance Rate by Department" in the reports - someone marked
+        // inactive shouldn't keep dragging that rate down forever.
         public Dictionary<string, int> GetEmployeeHeadcountByDepartment()
         {
             var result = new Dictionary<string, int>();
@@ -451,7 +429,7 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
                 var command = new SqlCommand(
                     @"SELECT DepartmentName, COUNT(*) AS Headcount
                       FROM [dbo].[Employees]
-                      WHERE DepartmentName IS NOT NULL
+                      WHERE DepartmentName IS NOT NULL AND IsActive = 1
                       GROUP BY DepartmentName",
                     connection);
 
@@ -472,7 +450,7 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
-                var command = new SqlCommand("SELECT Name FROM Employees ORDER BY Name ASC", connection);
+                var command = new SqlCommand("SELECT Name FROM Employees WHERE IsActive = 1 ORDER BY Name ASC", connection);
                 var reader = command.ExecuteReader();
 
                 var employees = new List<Employee>();
@@ -513,7 +491,7 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
-                var command = new SqlCommand("SELECT Name FROM Employees WHERE Name LIKE @term ORDER BY Name ASC", connection);
+                var command = new SqlCommand("SELECT Name FROM Employees WHERE Name LIKE @term AND IsActive = 1 ORDER BY Name ASC", connection);
                 command.Parameters.AddWithValue("@term", "%" + term + "%");
                 var reader = command.ExecuteReader();
 
@@ -576,13 +554,17 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
     
         // Best-effort case-insensitive name match against Employees.Name.
         // Returns null (unmatched) rather than guessing on a partial match.
+        // Filtered to IsActive=1: a newly-imported schedule shouldn't
+        // silently attach itself to someone who's been marked inactive -
+        // they'll instead fall through to the "unmatched name" list, which
+        // is the correct, visible outcome for a schedule importer to flag.
         public int? ResolveEmployeeIdByName(string name)
         {
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
                 var command = new SqlCommand(
-                    "SELECT Id FROM [dbo].[Employees] WHERE LOWER(Name) = LOWER(@Name)", connection);
+                    "SELECT Id FROM [dbo].[Employees] WHERE LOWER(Name) = LOWER(@Name) AND IsActive = 1", connection);
                 command.Parameters.AddWithValue("@Name", name);
                 var result = command.ExecuteScalar();
                 return result == null ? (int?)null : Convert.ToInt32(result);
@@ -647,12 +629,15 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             return result;
         }
 
+        // Filtered to IsActive=1: this is the "add employee to schedule"
+        // picker - shouldn't be able to newly assign an inactive employee
+        // to a seat going forward.
         public List<EmployeeOption> GetEmployeesForDropdown()
         {
             var result = new List<EmployeeOption>();
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
-                var command = new SqlCommand("SELECT Id, Name FROM [dbo].[Employees] ORDER BY Name ASC", connection);
+                var command = new SqlCommand("SELECT Id, Name FROM [dbo].[Employees] WHERE IsActive = 1 ORDER BY Name ASC", connection);
 
                 connection.Open();
                 var reader = command.ExecuteReader();
@@ -908,6 +893,8 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
         // Employees who've actually appeared in Schedules for this site —
         // not the full global Employees table. Keeps the "add employee"
         // picker scoped to people who plausibly belong at this location.
+        // Filtered to IsActive=1 as well: no reason to offer re-assigning
+        // an inactive employee to a new seat.
         public List<EmployeeOption> GetEmployeesForHostLocation(string hostLocation)
         {
             var result = new List<EmployeeOption>();
@@ -917,7 +904,7 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
                     @"SELECT DISTINCT e.Id, e.Name
                       FROM [dbo].[Schedules] s
                       JOIN [dbo].[Employees] e ON e.Id = s.EmployeeId
-                      WHERE s.HostLocation = @HostLocation AND s.EmployeeId IS NOT NULL
+                      WHERE s.HostLocation = @HostLocation AND s.EmployeeId IS NOT NULL AND e.IsActive = 1
                       ORDER BY e.Name ASC",
                     connection);
                 command.Parameters.AddWithValue("@HostLocation", hostLocation);
