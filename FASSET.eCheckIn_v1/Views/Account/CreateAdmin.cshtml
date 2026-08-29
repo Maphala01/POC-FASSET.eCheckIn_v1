@@ -1,0 +1,100 @@
+﻿@{
+    ViewBag.Title = "Create Admin";
+}
+<style>
+    .create-admin-wrap {
+        max-width: 380px;
+        margin: 0 auto;
+    }
+
+    .admin-field {
+        margin-bottom: 16px;
+    }
+
+        .admin-field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 5px;
+        }
+
+        .admin-field input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            box-sizing: border-box;
+        }
+
+    .admin-error {
+        background: #fbe6e6;
+        color: #a33333;
+        border: 1px solid #eec9c9;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 13px;
+        margin-bottom: 16px;
+    }
+
+    .admin-success {
+        background: #e6f6e9;
+        color: #2e7d3a;
+        border: 1px solid #c7e9cd;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 13px;
+        margin-bottom: 16px;
+    }
+
+    .admin-submit {
+        width: 100%;
+        padding: 12px;
+        background: #1b3f6e;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 15px;
+        cursor: pointer;
+    }
+
+        .admin-submit:hover {
+            background: #14304f;
+        }
+</style>
+
+<div class="create-admin-wrap">
+    <h2 class="mb-4">Create Admin</h2>
+
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="admin-error">@ViewBag.ErrorMessage</div>
+    }
+    @if (ViewBag.SuccessMessage != null)
+    {
+        <div class="admin-success">@ViewBag.SuccessMessage</div>
+    }
+
+    @using (Html.BeginForm("CreateAdmin", "Account", FormMethod.Post))
+    {
+        @Html.AntiForgeryToken()
+
+        <div class="admin-field">
+            <label>Username</label>
+            <input type="text" name="username" required />
+        </div>
+
+        <div class="admin-field">
+            <label>Password</label>
+            <input type="password" name="password" required />
+        </div>
+
+        <div class="admin-field">
+            <label>Confirm Password</label>
+            <input type="password" name="confirmPassword" required />
+        </div>
+
+        <button type="submit" class="admin-submit">Create Admin</button>
+    }
+</div>

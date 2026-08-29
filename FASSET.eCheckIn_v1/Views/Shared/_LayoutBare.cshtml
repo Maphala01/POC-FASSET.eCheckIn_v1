@@ -1,0 +1,78 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewBag.Title - FASSET e-CheckIn</title>
+    <link rel="icon" href="~/Content/download.ico" type="image/x-icon" />
+    <link href="~/Content/toastr.min.css" rel="stylesheet" />
+    @Styles.Render("~/Content/css")
+    @Scripts.Render("~/bundles/modernizr")
+    <script src="~/Content/jquery-3.6.0.min.js"></script>
+    <script src="~/Content/toastr.min.js"></script>
+    <style>
+        html, body {
+            min-height: 100%;
+        }
+
+        body {
+            position: relative;
+            background: #0B1220;
+            margin: 0;
+        }
+
+            body::before {
+                content: "";
+                position: fixed;
+                inset: 0;
+                z-index: -1;
+                background-color: #0B1220;
+                background-image: radial-gradient(circle at 20% 30%, rgba(56,189,248,0.10) 0, transparent 45%), radial-gradient(circle at 80% 20%, rgba(52,211,153,0.08) 0, transparent 45%), radial-gradient(circle at 60% 80%, rgba(56,189,248,0.08) 0, transparent 45%), radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+                background-size: 100% 100%, 100% 100%, 100% 100%, 26px 26px;
+                animation: driftBg 30s ease-in-out infinite;
+            }
+
+        @@keyframes driftBg {
+            0% {
+                background-position: 0% 0%, 0% 0%, 0% 0%, 0px 0px;
+            }
+
+            50% {
+                background-position: 3% 2%, -2% 3%, 2% -2%, 8px 8px;
+            }
+
+            100% {
+                background-position: 0% 0%, 0% 0%, 0% 0%, 0px 0px;
+            }
+        }
+    </style>
+</head>
+<body>
+    @RenderBody()
+    @if (TempData["CheckIn-Success"] != null)
+    {
+        <script>
+        $(document).ready(function () {
+            toastr.success('@TempData["CheckIn-Success"]');
+        });
+        toastr.options = {
+            'closeButton': false,
+            'debug': false,
+            'newestOnTop': false,
+            'progressBar': true,
+            'positionClass': 'toast-top-full-width',
+            'preventDuplicates': false,
+            'showDuration': '1000',
+            'hideDuration': '1000',
+            'timeOut': '5000',
+            'extendedTimeOut': '1000',
+            'showEasing': 'swing',
+            'hideEasing': 'linear',
+            'showMethod': 'fadeIn',
+            'hideMethod': 'slideUp',
+        }
+        </script>
+    }
+    @RenderSection("scripts", required: false)
+</body>
+</html>

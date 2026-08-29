@@ -52,7 +52,7 @@ namespace FASSET.eCheckIn_v1.Controllers
             return View("Index", model);
         }
 
-            [HttpPost]
+        [HttpPost]
         public ActionResult SubmitRegistration(Guest_StaffModel model)
         {
             QRCodeModel qrCodeModel = new QRCodeModel();
@@ -80,7 +80,7 @@ namespace FASSET.eCheckIn_v1.Controllers
                 ViewBag.MessageType = "error";
             }
 
-            else if(res == -1)
+            else if (res == -1)
             {
                 ViewBag.Message = "User does not exist!";
                 ViewBag.MessageType = "error";
@@ -96,19 +96,19 @@ namespace FASSET.eCheckIn_v1.Controllers
                 ViewBag.Message = "Your checkIn was unsuccessful..contact ICT!";
                 ViewBag.MessageType = "error";
             }
- 
-                model.DepartmentList = _dbAccess.GetDepartments_2();
-                model.EmployeeList = _dbAccess.GetEmployees_2();
-                //model.CapacityList = _dbAccess.GetRepCapacity();
-                model.TitleList = _dbAccess.GetTitle();
 
-                ViewBag.Departments = model.DepartmentList;
-                ViewBag.Employees = model.EmployeeList;
-                ViewBag.Capacities = model.CapacityList;
-                ViewBag.Titles = model.TitleList;
-                return View("Index", model);
-            
-            
+            model.DepartmentList = _dbAccess.GetDepartments_2();
+            model.EmployeeList = _dbAccess.GetEmployees_2();
+            //model.CapacityList = _dbAccess.GetRepCapacity();
+            model.TitleList = _dbAccess.GetTitle();
+
+            ViewBag.Departments = model.DepartmentList;
+            ViewBag.Employees = model.EmployeeList;
+            ViewBag.Capacities = model.CapacityList;
+            ViewBag.Titles = model.TitleList;
+            return View("Index", model);
+
+
         }
     }
 }

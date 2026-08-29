@@ -2,12 +2,13 @@
 using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Data.SqlClient;
 using System.Data;
+using System.Data.SqlClient;
+using System.Drawing.Drawing2D;
+using System.IO;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
-using System.Drawing.Drawing2D;
 
 
 namespace FASSET.eCheckIn_v1.Data_Access_Layer
@@ -24,16 +25,53 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
         public int SaveRegistration(RegistrationModel model)
         {
             return SaveRegistration(model.Employee, model.Department, model.qrCodeImgUrl, model.QRCodeTotp, model.GeoLocation, "CheckInEmployee", "QR_Registration");
-            //return SaveRegistration(model.Employee, model.Department, model.qrCodeImgUrl, model.QRCodeTotp, model.GeoLocation, "CheckInEmployee");
         }
 
         public int SaveRegistration(Guest_StaffModel model)
         {
             return SaveRegistration(model.Employee, model.Department, model.qrCodeImgUrl, model.QRCodeTotp, model.GeoLocation, "CheckInEmployee", "Manual_Registration");
-            //return SaveRegistration(model.Employee, model.Department, model.qrCodeImgUrl, model.QRCodeTotp, model.GeoLocation, "CheckInEmployee");
         }
 
         //private int SaveRegistration(string name, string department, string qrCodeImageUrl, string totp, string geoLocation, string trnsNm,string regType)
+        //private int SaveRegistration(string name, string department, string qrCodeImageUrl, string totp, string geoLocation, string trnsNm, string regType)
+        //{
+
+        //    string empName = name;
+        //    string empDepartment = department;
+        //    string empQrCodeImageUrl = qrCodeImageUrl;
+        //    string empGeoLocation = geoLocation;
+        //    string empTOTP = "NULL";
+
+
+        //    int res = 0;
+        //    using (SqlConnection connection = new SqlConnection(_connectionString))
+        //    {
+        //        //res = Convert.ToInt32(outputParam.Value);
+        //        SqlCommand sql_cmd = new SqlCommand("mst_spCheckInEmployee", connection);
+        //        sql_cmd.CommandType = CommandType.StoredProcedure;
+
+        //        sql_cmd.Parameters.AddWithValue("@Name", empName);
+        //        sql_cmd.Parameters.AddWithValue("@Department", empDepartment);
+        //        sql_cmd.Parameters.AddWithValue("@QRCodeImageUrl", empQrCodeImageUrl);
+        //        sql_cmd.Parameters.AddWithValue("@RegistrationType", regType);
+        //        sql_cmd.Parameters.AddWithValue("@TrnsNm", trnsNm);
+        //        sql_cmd.Parameters.AddWithValue("@GeoLocation", empGeoLocation);
+
+        //        // 🔧 Explicit OUTPUT parameter
+        //        SqlParameter outputParam = new SqlParameter("@IsVld", SqlDbType.Int)
+        //        {
+        //            Direction = ParameterDirection.Output
+        //        };
+        //        sql_cmd.Parameters.Add(outputParam);
+
+        //        connection.Open();
+        //        sql_cmd.ExecuteNonQuery();
+
+        //        res = Convert.ToInt32(outputParam.Value);
+        //    }
+        //    return res;
+        //}
+
         private int SaveRegistration(string name, string department, string qrCodeImageUrl, string totp, string geoLocation, string trnsNm, string regType)
         {
 
@@ -47,26 +85,6 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             int res = 0;
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
-                //SqlCommand sql_cmd = new SqlCommand("mst_spCheckInEmployee", connection);
-                //sql_cmd.CommandType = CommandType.StoredProcedure;
-                //sql_cmd.Parameters.AddWithValue("@Name", empName);
-                //sql_cmd.Parameters.AddWithValue("@Department", empDepartment);
-                //sql_cmd.Parameters.AddWithValue("@QRCodeImageUrl", empQrCodeImageUrl);
-                ////sql_cmd.Parameters.AddWithValue("@TOTP", empTOTP);
-                //sql_cmd.Parameters.AddWithValue("@GeoLocation", empGeoLocation);
-                //sql_cmd.Parameters.AddWithValue("@RegistrationType", regType);
-                //sql_cmd.Parameters.AddWithValue("@TrnsNm", trnsNm);
-
-                //SqlParameter outputParam = new SqlParameter("@IsVld", SqlDbType.Int)
-                //{
-                //    Direction = ParameterDirection.Output
-                //};
-                //sql_cmd.Parameters.Add(outputParam);
-
-                //connection.Open();
-                //sql_cmd.ExecuteNonQuery();
-
-                //// Get the output parameter value
                 //res = Convert.ToInt32(outputParam.Value);
                 SqlCommand sql_cmd = new SqlCommand("mst_spCheckInEmployee", connection);
                 sql_cmd.CommandType = CommandType.StoredProcedure;
@@ -91,6 +109,91 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
                 res = Convert.ToInt32(outputParam.Value);
             }
             return res;
+        }
+
+
+        public List<ScheduledDayRow> GetScheduledDays(DateTime startDate, DateTime endDateExclusive, string department)
+        {
+            var rows = new List<ScheduledDayRow>();
+
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                string sql = @"
+                    SELECT
+                        s.EmployeeId, e.Name AS EmployeeName, s.ScheduleDate, s.HostLocation
+                    FROM [dbo].Schedules s 
+                    JOIN [dbo].[Employees] e ON e.Id = s.EmployeeId
+                    WHERE s.ScheduleDate >= @StartDate AND s.ScheduleDate < @EndDateExclusive AND s.IsVacant = 0 AND s.IsPublicHoliday = 0 AND (@Department IS NULL OR e.DepartmentName = @Department)";
+
+                var command = new SqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@StartDate", startDate.Date);
+                command.Parameters.AddWithValue("@EndDateExclusive", endDateExclusive.Date);
+                command.Parameters.AddWithValue("@Department", (object)department ?? DBNull.Value);
+
+                connection.Open();
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    rows.Add(new ScheduledDayRow
+                    {
+                        EmployeeId = Convert.ToInt32(reader["EmployeeId"]),
+                        EmployeeName = reader["EmployeeName"] as string,
+                        ScheduleDate = Convert.ToDateTime(reader["ScheduleDate"]),
+                        HostLocation = reader["HostLocation"] as string
+                    });
+                }
+            }
+
+            return rows;
+        }
+
+        public List<string> GetDistinctRawGeoLocations()
+        {
+            var locations = new List<string>();
+
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    "SELECT DISTINCT GeoLocation FROM [dbo].[mst_dailyCheckIn_tbl] WHERE GeoLocation IS NOT NULL",
+                    connection);
+
+                connection.Open();
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    locations.Add(reader["GeoLocation"].ToString());
+                }
+            }
+
+            return locations;
+        }
+
+
+        public List<SiteInfo> GetSites()
+        {
+            var sites = new List<SiteInfo>();
+
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    "SELECT SiteName, Latitude, Longitude, RadiusMeters FROM [dbo].[mst_Sites]",
+                    connection);
+
+                connection.Open();
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    sites.Add(new SiteInfo
+                    {
+                        SiteName = reader["SiteName"].ToString(),
+                        Latitude = Convert.ToDouble(reader["Latitude"]),
+                        Longitude = Convert.ToDouble(reader["Longitude"]),
+                        RadiusMeters = Convert.ToInt32(reader["RadiusMeters"])
+                    });
+                }
+            }
+
+            return sites;
         }
 
         public int SaveRegistration_Guest(Guest_StaffModel model)
@@ -128,25 +231,7 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
                 return res;
             }
         }
-        //public List<Capacity> GetRepCapacity()
-        //{
-        //    using (SqlConnection connection = new SqlConnection(_connectionString))
-        //    {
-        //        connection.Open();
-        //        var command = new SqlCommand("SELECT capacityName FROM mst_representationCapacity", connection);
-        //        var reader = command.ExecuteReader();
-        //        var capacities = new List<Capacity>();
-
-        //        while (reader.Read())
-        //        {
-        //            capacities.Add(new Capacity { CapacityName = reader["CapacityName"].ToString() });
-        //        }
-        //        return capacities;
-        //    }
-        //}
-
-
-
+  
         public List<Title> GetTitle()
         {
             using (SqlConnection connection = new SqlConnection(_connectionString))
@@ -381,69 +466,6 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             return result;
         }
 
-        // Last check-in date per employee, across ALL history (not limited
-        // to the report's date filter) — this is what "who hasn't checked
-        // in recently" actually needs; restricting it to the selected range
-        // would make everyone look overdue just because the range is short.
-        // Optional department filter still applies, since that's a
-        // legitimate narrowing, not a time-window distortion.
-
-
-        //public List<Department> GetDepartment()
-        //{
-        //    using (SqlConnection connection = new SqlConnection(_connectionString))
-        //    {
-        //        connection.Open();
-        //        var command = new SqlCommand("SELECT DepartmentName FROM Departments ORDER BY DepartmentName ASC", connection);
-        //        var reader = command.ExecuteReader();
-
-        //        var department = new List<Department>();
-
-        //        while (reader.Read())
-        //        {
-        //            department.Add(new Department { DepartmentName = reader["DepartmentName"].ToString() });
-        //        }
-
-        //        return department;
-        //    }
-        //}
-
-        //public List<Employee> GetEmployees()
-        //{
-        //    using (SqlConnection connection = new SqlConnection(_connectionString))
-        //    {
-        //        connection.Open();
-        //        var command = new SqlCommand("SELECT Name FROM Employees ORDER BY Name ASC", connection);
-        //        var reader = command.ExecuteReader();
-
-        //        var employees = new List<Employee>();
-
-        //        while (reader.Read())
-        //        {
-        //            employees.Add(new Employee { EmployeeName = reader["Name"].ToString() });
-        //        }
-
-        //        return employees;
-        //    }
-        //}
-        //public List<Department> GetDepartments()
-        //{
-        //    using (SqlConnection connection = new SqlConnection(_connectionString))
-        //    {
-        //        connection.Open();
-        //        var command = new SqlCommand("SELECT DepartmentName FROM Departments ORDER BY DepartmentName ASC", connection);
-        //        var reader = command.ExecuteReader();
-
-        //        var departments = new List<Department>();
-
-        //        while (reader.Read())
-        //        {
-        //            departments.Add(new Department { DepartmentName = reader["DepartmentName"].ToString() });
-        //        }
-
-        //        return departments;
-        //    }
-        //}
 
         public List<Employee> GetEmployees()
         {
@@ -506,6 +528,456 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             }
         }
 
+        public int BulkInsertSchedules(List<ScheduleModel> rows)
+        {
+                var table = new DataTable();
+                table.Columns.Add("HostLocation", typeof(string));
+                table.Columns.Add("EmployeeId", typeof(int));
+                table.Columns.Add("EmployeeNameRaw", typeof(string));
+                table.Columns.Add("ScheduleDate", typeof(DateTime));
+                table.Columns.Add("SeatSlot", typeof(int));
+                table.Columns.Add("IsVacant", typeof(bool));
+                table.Columns.Add("IsPublicHoliday", typeof(bool));
+                table.Columns.Add("CreatedBy", typeof(string));
+        
+                foreach (var r in rows)
+                {
+                    var dr = table.NewRow();
+                    dr["HostLocation"] = r.HostLocation;
+                    dr["EmployeeId"] = (object)r.EmployeeId ?? DBNull.Value;
+                    dr["EmployeeNameRaw"] = r.EmployeeNameRaw ?? "";
+                    dr["ScheduleDate"] = r.ScheduleDate;
+                    dr["SeatSlot"] = (object)r.SeatSlot ?? DBNull.Value;
+                    dr["IsVacant"] = r.IsVacant;
+                    dr["IsPublicHoliday"] = r.IsPublicHoliday;
+                    dr["CreatedBy"] = r.CreatedBy ?? "Import";
+                    table.Rows.Add(dr);
+                }
+        
+                using (SqlConnection connection = new SqlConnection(_connectionString))
+                {
+                    connection.Open();
+                    using (var bulkCopy = new SqlBulkCopy(connection))
+                    {
+                        bulkCopy.DestinationTableName = "dbo.Schedules";
+                        bulkCopy.ColumnMappings.Add("HostLocation", "HostLocation");
+                        bulkCopy.ColumnMappings.Add("EmployeeId", "EmployeeId");
+                        bulkCopy.ColumnMappings.Add("EmployeeNameRaw", "EmployeeNameRaw");
+                        bulkCopy.ColumnMappings.Add("ScheduleDate", "ScheduleDate");
+                        bulkCopy.ColumnMappings.Add("SeatSlot", "SeatSlot");
+                        bulkCopy.ColumnMappings.Add("IsVacant", "IsVacant");
+                        bulkCopy.ColumnMappings.Add("IsPublicHoliday", "IsPublicHoliday");
+                        bulkCopy.ColumnMappings.Add("CreatedBy", "CreatedBy");
+                        bulkCopy.WriteToServer(table);
+                    }
+                }
+                return rows.Count;
+            }
+    
+        // Best-effort case-insensitive name match against Employees.Name.
+        // Returns null (unmatched) rather than guessing on a partial match.
+        public int? ResolveEmployeeIdByName(string name)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                var command = new SqlCommand(
+                    "SELECT Id FROM [dbo].[Employees] WHERE LOWER(Name) = LOWER(@Name)", connection);
+                command.Parameters.AddWithValue("@Name", name);
+                var result = command.ExecuteScalar();
+                return result == null ? (int?)null : Convert.ToInt32(result);
+            }
+        }
+    
+        public List<ScheduleModel> GetScheduleForDate(DateTime date, string hostLocation = null)
+        {
+            var rows = new List<ScheduleModel>();
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                string sql = @"
+                SELECT Id, HostLocation, EmployeeId, EmployeeNameRaw, ScheduleDate,
+                       SeatSlot, IsVacant, IsPublicHoliday, CreatedAt, CreatedBy
+                FROM [dbo].[Schedules]
+                WHERE ScheduleDate = @Date
+                  AND (@HostLocation IS NULL OR HostLocation = @HostLocation)
+                ORDER BY HostLocation, SeatSlot;";
+                var command = new SqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@Date", date.Date);
+                command.Parameters.AddWithValue("@HostLocation", (object)hostLocation ?? DBNull.Value);
 
+                connection.Open();
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    rows.Add(new ScheduleModel
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        HostLocation = reader["HostLocation"] as string,
+                        EmployeeId = reader["EmployeeId"] == DBNull.Value ? (int?)null : Convert.ToInt32(reader["EmployeeId"]),
+                        EmployeeNameRaw = reader["EmployeeNameRaw"] as string,
+                        ScheduleDate = Convert.ToDateTime(reader["ScheduleDate"]),
+                        SeatSlot = reader["SeatSlot"] == DBNull.Value ? (int?)null : Convert.ToInt32(reader["SeatSlot"]),
+                        IsVacant = Convert.ToBoolean(reader["IsVacant"]),
+                        IsPublicHoliday = Convert.ToBoolean(reader["IsPublicHoliday"]),
+                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                        CreatedBy = reader["CreatedBy"] as string,
+                    });
+                }
+            }
+            return rows;
+        }
+
+
+        public List<string> GetDistinctHostLocations()
+        {
+            var result = new List<string>();
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    "SELECT DISTINCT HostLocation FROM [dbo].[Schedules] WHERE HostLocation IS NOT NULL ORDER BY HostLocation ASC",
+                    connection);
+
+                connection.Open();
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    result.Add(reader["HostLocation"].ToString());
+                }
+            }
+            return result;
+        }
+
+        public List<EmployeeOption> GetEmployeesForDropdown()
+        {
+            var result = new List<EmployeeOption>();
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand("SELECT Id, Name FROM [dbo].[Employees] ORDER BY Name ASC", connection);
+
+                connection.Open();
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    result.Add(new EmployeeOption
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        Name = reader["Name"].ToString()
+                    });
+                }
+            }
+            return result;
+        }
+
+        public List<ScheduleModel> GetScheduleForMonth(int year, int month, string hostLocation)
+        {
+            var rows = new List<ScheduleModel>();
+            var startDate = new DateTime(year, month, 1);
+            var endDateExclusive = startDate.AddMonths(1);
+
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                // De-duplicate: if a site's file was imported more than once, the same
+                // HostLocation+Date+Seat can end up with several rows. Only the most
+                // recently inserted row per seat/day is shown, so a re-import "wins"
+                // instead of stacking duplicates on the calendar.
+                string sql = @"
+                    ;WITH Ranked AS (
+                        SELECT *,
+                               ROW_NUMBER() OVER (
+                                   PARTITION BY HostLocation, ScheduleDate, SeatSlot
+                                   ORDER BY Id DESC
+                               ) AS rn
+                        FROM [dbo].[Schedules]
+                        WHERE ScheduleDate >= @StartDate AND ScheduleDate < @EndDateExclusive
+                          AND (@HostLocation IS NULL OR HostLocation = @HostLocation)
+                    )
+                    SELECT Id, HostLocation, EmployeeId, EmployeeNameRaw, ScheduleDate,
+                           SeatSlot, IsVacant, IsPublicHoliday, CreatedAt, CreatedBy
+                    FROM Ranked
+                    WHERE rn = 1
+                    ORDER BY ScheduleDate, SeatSlot;";
+
+                var command = new SqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@StartDate", startDate);
+                command.Parameters.AddWithValue("@EndDateExclusive", endDateExclusive);
+                command.Parameters.AddWithValue("@HostLocation", (object)hostLocation ?? DBNull.Value);
+
+                connection.Open();
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    rows.Add(new ScheduleModel
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        HostLocation = reader["HostLocation"] as string,
+                        EmployeeId = reader["EmployeeId"] == DBNull.Value ? (int?)null : Convert.ToInt32(reader["EmployeeId"]),
+                        EmployeeNameRaw = reader["EmployeeNameRaw"] as string,
+                        ScheduleDate = Convert.ToDateTime(reader["ScheduleDate"]),
+                        SeatSlot = reader["SeatSlot"] == DBNull.Value ? (int?)null : Convert.ToInt32(reader["SeatSlot"]),
+                        IsVacant = Convert.ToBoolean(reader["IsVacant"]),
+                        IsPublicHoliday = Convert.ToBoolean(reader["IsPublicHoliday"]),
+                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                        CreatedBy = reader["CreatedBy"] as string,
+                    });
+                }
+            }
+            return rows;
+        }
+
+        public ScheduleModel GetScheduleById(int id)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                string sql = @"
+                    SELECT Id, HostLocation, EmployeeId, EmployeeNameRaw, ScheduleDate,
+                           SeatSlot, IsVacant, IsPublicHoliday, CreatedAt, CreatedBy
+                    FROM [dbo].[Schedules]
+                    WHERE Id = @Id;";
+
+                var command = new SqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@Id", id);
+
+                connection.Open();
+                var reader = command.ExecuteReader();
+                if (reader.Read())
+                {
+                    return new ScheduleModel
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        HostLocation = reader["HostLocation"] as string,
+                        EmployeeId = reader["EmployeeId"] == DBNull.Value ? (int?)null : Convert.ToInt32(reader["EmployeeId"]),
+                        EmployeeNameRaw = reader["EmployeeNameRaw"] as string,
+                        ScheduleDate = Convert.ToDateTime(reader["ScheduleDate"]),
+                        SeatSlot = reader["SeatSlot"] == DBNull.Value ? (int?)null : Convert.ToInt32(reader["SeatSlot"]),
+                        IsVacant = Convert.ToBoolean(reader["IsVacant"]),
+                        IsPublicHoliday = Convert.ToBoolean(reader["IsPublicHoliday"]),
+                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                        CreatedBy = reader["CreatedBy"] as string,
+                    };
+                }
+                return null;
+            }
+        }
+
+        public int InsertSchedule(ScheduleModel model)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                string sql = @"
+                    INSERT INTO [dbo].[Schedules]
+                        (HostLocation, EmployeeId, EmployeeNameRaw, ScheduleDate, SeatSlot, IsVacant, IsPublicHoliday, CreatedAt, CreatedBy)
+                    OUTPUT INSERTED.Id
+                    VALUES
+                        (@HostLocation, @EmployeeId, @EmployeeNameRaw, @ScheduleDate, @SeatSlot, @IsVacant, @IsPublicHoliday, GETDATE(), @CreatedBy);";
+
+                var command = new SqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@HostLocation", model.HostLocation);
+                command.Parameters.AddWithValue("@EmployeeId", (object)model.EmployeeId ?? DBNull.Value);
+                command.Parameters.AddWithValue("@EmployeeNameRaw", model.EmployeeNameRaw ?? "");
+                command.Parameters.AddWithValue("@ScheduleDate", model.ScheduleDate.Date);
+                command.Parameters.AddWithValue("@SeatSlot", (object)model.SeatSlot ?? DBNull.Value);
+                command.Parameters.AddWithValue("@IsVacant", model.IsVacant);
+                command.Parameters.AddWithValue("@IsPublicHoliday", model.IsPublicHoliday);
+                command.Parameters.AddWithValue("@CreatedBy", model.CreatedBy ?? "Admin");
+
+                connection.Open();
+                var newId = command.ExecuteScalar();
+                return Convert.ToInt32(newId);
+            }
+        }
+
+        public bool UpdateSchedule(ScheduleModel model)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                string sql = @"
+                    UPDATE [dbo].[Schedules]
+                    SET HostLocation = @HostLocation,
+                        EmployeeId = @EmployeeId,
+                        EmployeeNameRaw = @EmployeeNameRaw,
+                        ScheduleDate = @ScheduleDate,
+                        SeatSlot = @SeatSlot,
+                        IsVacant = @IsVacant,
+                        IsPublicHoliday = @IsPublicHoliday
+                    WHERE Id = @Id;";
+
+                var command = new SqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@Id", model.Id);
+                command.Parameters.AddWithValue("@HostLocation", model.HostLocation);
+                command.Parameters.AddWithValue("@EmployeeId", (object)model.EmployeeId ?? DBNull.Value);
+                command.Parameters.AddWithValue("@EmployeeNameRaw", model.EmployeeNameRaw ?? "");
+                command.Parameters.AddWithValue("@ScheduleDate", model.ScheduleDate.Date);
+                command.Parameters.AddWithValue("@SeatSlot", (object)model.SeatSlot ?? DBNull.Value);
+                command.Parameters.AddWithValue("@IsVacant", model.IsVacant);
+                command.Parameters.AddWithValue("@IsPublicHoliday", model.IsPublicHoliday);
+
+                connection.Open();
+                int affected = command.ExecuteNonQuery();
+                return affected > 0;
+            }
+        }
+
+        public bool DeleteSchedule(int id)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand("DELETE FROM [dbo].[Schedules] WHERE Id = @Id;", connection);
+                command.Parameters.AddWithValue("@Id", id);
+
+                connection.Open();
+                int affected = command.ExecuteNonQuery();
+                return affected > 0;
+            }
+        }
+
+
+        // Same de-duplication logic as GetScheduleForMonth, but takes an
+        // arbitrary date range — FullCalendar's month view actually spans
+        // parts of the previous/next month too, so it asks for a range,
+        // not a clean calendar month.
+        public List<ScheduleModel> GetScheduleForDateRange(DateTime start, DateTime end, string hostLocation)
+        {
+            var rows = new List<ScheduleModel>();
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                string sql = @"
+                    ;WITH Ranked AS (
+                        SELECT *,
+                               ROW_NUMBER() OVER (
+                                   PARTITION BY HostLocation, ScheduleDate, SeatSlot
+                                   ORDER BY Id DESC
+                               ) AS rn
+                        FROM [dbo].[Schedules]
+                        WHERE ScheduleDate >= @StartDate AND ScheduleDate < @EndDate
+                          AND (@HostLocation IS NULL OR HostLocation = @HostLocation)
+                    )
+                    SELECT Id, HostLocation, EmployeeId, EmployeeNameRaw, ScheduleDate,
+                           SeatSlot, IsVacant, IsPublicHoliday, CreatedAt, CreatedBy
+                    FROM Ranked
+                    WHERE rn = 1
+                    ORDER BY ScheduleDate, SeatSlot;";
+
+                var command = new SqlCommand(sql, connection);
+                command.Parameters.AddWithValue("@StartDate", start.Date);
+                command.Parameters.AddWithValue("@EndDate", end.Date);
+                command.Parameters.AddWithValue("@HostLocation", (object)hostLocation ?? DBNull.Value);
+
+                connection.Open();
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    rows.Add(new ScheduleModel
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        HostLocation = reader["HostLocation"] as string,
+                        EmployeeId = reader["EmployeeId"] == DBNull.Value ? (int?)null : Convert.ToInt32(reader["EmployeeId"]),
+                        EmployeeNameRaw = reader["EmployeeNameRaw"] as string,
+                        ScheduleDate = Convert.ToDateTime(reader["ScheduleDate"]),
+                        SeatSlot = reader["SeatSlot"] == DBNull.Value ? (int?)null : Convert.ToInt32(reader["SeatSlot"]),
+                        IsVacant = Convert.ToBoolean(reader["IsVacant"]),
+                        IsPublicHoliday = Convert.ToBoolean(reader["IsPublicHoliday"]),
+                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                        CreatedBy = reader["CreatedBy"] as string,
+                    });
+                }
+            }
+            return rows;
+        }
+
+        // Picks the next free seat number for a site+day so two people
+        // dropped on the same day never collide with each other (and never
+        // collide with the null-seat de-dup logic above — a NULL SeatSlot
+        // would make every drag-dropped entry on the same day look like
+        // "the same seat" to the ranking query, silently hiding all but one).
+        public int GetNextAvailableSeatSlot(string hostLocation, DateTime date)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    "SELECT ISNULL(MAX(SeatSlot), 0) + 1 FROM [dbo].[Schedules] WHERE HostLocation = @HostLocation AND ScheduleDate = @Date",
+                    connection);
+                command.Parameters.AddWithValue("@HostLocation", hostLocation);
+                command.Parameters.AddWithValue("@Date", date.Date);
+
+                connection.Open();
+                var result = command.ExecuteScalar();
+                return (result == null || result == DBNull.Value) ? 1 : Convert.ToInt32(result);
+            }
+        }
+
+        // Employees who've actually appeared in Schedules for this site —
+        // not the full global Employees table. Keeps the "add employee"
+        // picker scoped to people who plausibly belong at this location.
+        public List<EmployeeOption> GetEmployeesForHostLocation(string hostLocation)
+        {
+            var result = new List<EmployeeOption>();
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    @"SELECT DISTINCT e.Id, e.Name
+                      FROM [dbo].[Schedules] s
+                      JOIN [dbo].[Employees] e ON e.Id = s.EmployeeId
+                      WHERE s.HostLocation = @HostLocation AND s.EmployeeId IS NOT NULL
+                      ORDER BY e.Name ASC",
+                    connection);
+                command.Parameters.AddWithValue("@HostLocation", hostLocation);
+
+                connection.Open();
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    result.Add(new EmployeeOption
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        Name = reader["Name"].ToString()
+                    });
+                }
+            }
+            return result;
+        }
+
+        public string GetAdminPasswordHash(string username)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    "SELECT PasswordHash FROM [dbo].[Admins] WHERE Username = @Username",
+                    connection);
+                command.Parameters.AddWithValue("@Username", username);
+
+                connection.Open();
+                var result = command.ExecuteScalar();
+                return (result == null || result == DBNull.Value) ? null : result.ToString();
+            }
+        }
+
+        public bool AdminUsernameExists(string username)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    "SELECT COUNT(1) FROM [dbo].[Admins] WHERE Username = @Username",
+                    connection);
+                command.Parameters.AddWithValue("@Username", username);
+
+                connection.Open();
+                return Convert.ToInt32(command.ExecuteScalar()) > 0;
+            }
+        }
+
+        public void InsertAdmin(string username, string passwordHash)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    "INSERT INTO [dbo].[Admins] (Username, PasswordHash) VALUES (@Username, @PasswordHash)",
+                    connection);
+                command.Parameters.AddWithValue("@Username", username);
+                command.Parameters.AddWithValue("@PasswordHash", passwordHash);
+
+                connection.Open();
+                command.ExecuteNonQuery();
+            }
+        }
     }
 }
