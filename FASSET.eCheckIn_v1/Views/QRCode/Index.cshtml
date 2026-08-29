@@ -1,91 +1,79 @@
 ﻿@model FASSET.eCheckIn_v1.Models.QRCodeModel
 
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+@section head {
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <link rel="stylesheet" type="text/css" href="~/Content/Site.css?v=@DateTime.Now.Ticks" />
-    <link href="~/Content/Site.css" rel="stylesheet" />
-    @*<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>*@
-    <script src="~/Content/jquery-3.6.0.min.js"></script>
-    @*<script src="~/Content/Site.css.js?v=@DateTime.Now.Ticks"></script>*@
     <title>Daily QR Code</title>
+    <style>
+        .qr-page {
+            text-align: center;
+            padding: 120px 0 4px;
+        }
+
+            .qr-page h2 {
+                font-size: 20px;
+                margin: 0 0 14px 0;
+                color: #1E293B;
+            }
+
+        .qr-code {
+            max-width: 620px;
+            width: 100%;
+            height: auto;
+        }
+    </style>
+}
+
+<div class="qr-page">
+    @if (ViewBag.QRError != null)
+    {
+        <p style="color:red;">@ViewBag.QRError</p>
+    }
+    else if (ViewBag.QRCodeExpired != null)
+    {
+        <h2>QR Code Expired</h2>
+        <p>The QR code you are trying to access has expired.</p>
+    }
+    else if (Model.QRCodeImageUrl != null)
+    {
+        <h2>
+            Scan the QR Code to visit FASSET<span>&reg;</span> Echeck-In
+            <span id="date-display"></span>
+        </h2>
+        <img class="qr-code" src="@Model.QRCodeImageUrl" alt="Daily QR Code" />
+    }
+    else
+    {
+        <p style="color:orange;">QR code URL was not generated. Check server logs.</p>
+    }
+</div>
+
+@section scripts {
     <script>
-        // Function to update the timer every second
+        // Reloads the page once the current QR code's validity window ends,
+        // so a stale/expired code is never left on screen unattended.
         function updateTimer() {
             var timerElement = document.getElementById("timer");
+            if (!timerElement) return;
             var timeLeft = parseInt(timerElement.innerText);
-
             if (timeLeft > 0) {
                 timerElement.innerText = timeLeft - 1;
             } else {
                 window.location.reload(true);
             }
         }
-
-        // Update the timer every second
         setInterval(updateTimer, 1000);
-    </script>
-    <script>
-        // Function to get today's date and display it in a specified format
+
         function displayTodayDate() {
             const today = new Date();
             const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-11
+            const month = String(today.getMonth() + 1).padStart(2, '0');
             const day = String(today.getDate()).padStart(2, '0');
             const formattedDate = `${year}-${month}-${day}`;
-
-            // Display the date in the element with id 'date-display'
-            document.getElementById('date-display').textContent = formattedDate;
+            var el = document.getElementById('date-display');
+            if (el) el.textContent = formattedDate;
         }
-
-        // Execute the function when the page loads
-        window.onload = displayTodayDate;
+        displayTodayDate();
     </script>
-</head>
-<body>
-    <div style="text-align:center;">
-        @if (ViewBag.QRError != null)
-        {
-            <p style="color:red;">@ViewBag.QRError</p>
-        }
-        else if (ViewBag.QRCodeExpired != null)
-        {
-            <h2>QR Code Expired</h2>
-            <p>The QR code you are trying to access has expired.</p>
-        }
-        else if (Model.QRCodeImageUrl != null)
-        {
-            <h2>
-                Scan the QR Code to visit FASSET<span>&reg;</span> Echeck-In
-                <span id="date-display"></span>
-            </h2>
-            <img class="qr-code" src="@Model.QRCodeImageUrl" alt="Daily QR Code" />
-        }
-        else
-        {
-            <p style="color:orange;">QR code URL was not generated. Check server logs.</p>
-        }
-    </div>
-
-    <!-- Timer display -->
-    @*<div style="text-align:center;">
-            <h2>Time left: <span id="timer">45</span> seconds</h2>
-        </div>*@
-    <script src="~/Content/modernizr.min.js"></script>
-    <script>
-        //function reloadPageAfter45Seconds() {
-        //    setTimeout(() => {
-        //        window.location.reload(true); // Forces the browser to reload the page from the server
-        //    }, 25000); // 45000 milliseconds = 45 seconds
-        //}
-
-        //// Call the function to set the timer
-        //reloadPageAfter45Seconds();
-    </script>
-</body>
-</html>
+}

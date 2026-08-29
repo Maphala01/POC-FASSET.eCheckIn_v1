@@ -55,24 +55,8 @@
             margin: 0 24px 24px 24px;
         }
 
-        #closeButton {
-            background-color: #4caf50;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            padding: 12px 28px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-            #closeButton:hover {
-                background-color: #3d9440;
-            }
-
         #closeNote {
-            font-size: 13px;
-            color: #777;
-            margin: 14px 24px 0 24px;
+            color: #444;
         }
 
         @@import url('https://fonts.googleapis.com/css?family=Montserrat');
@@ -146,9 +130,8 @@
         <img class="cld-responsive" alt="header-image" src="~/Content/FASSET_HD.jpg" />
         <div class="checkmark-circle">&#10003;</div>
         <h1>@(string.IsNullOrEmpty(checkedInName) ? "You're checked in!" : checkedInName + ", you're checked in!")</h1>
-        <p>Thanks &mdash; your check-in has been recorded. You can close this tab now.</p>
-        <button type="button" id="closeButton" onclick="closeThisTab()">Close tab</button>
-        <p id="closeNote" style="display:none;">Your browser didn't allow this tab to close automatically &mdash; you can close it manually now.</p>
+        <p>Thanks &mdash; your check-in has been recorded.</p>
+        <p id="closeNote">You're all set. You can put your phone away now, or close this tab if you'd like &mdash; either way, there's nothing else to do here.</p>
     </div>
 
     <div class="typed-section">
@@ -156,12 +139,19 @@
     </div>
 
     <script>
-        function closeThisTab() {
-            window.close();
+        // Quietly try to close the tab in case this one WAS opened by
+        // script (window.open) - most mobile browsers block this for tabs
+        // reached by scanning a QR code or typing a URL directly, since
+        // that's a security restriction with no workaround, not a bug.
+        // Either way the page above already reads correctly regardless of
+        // whether this succeeds, so there's no button pretending to do
+        // something that usually can't happen.
+        window.addEventListener('load', function () {
             setTimeout(function () {
-                document.getElementById('closeNote').style.display = 'block';
-            }, 300);
-        }
+                window.close();
+            }, 400);
+        });
+
         function fireConfetti() {
             if (typeof confetti !== 'function') {
                 return; // CDN failed to load - fail silently, don't break the page

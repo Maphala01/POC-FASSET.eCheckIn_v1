@@ -11,7 +11,6 @@
     <meta name="viewport" content="width=device-width" />
     <title>FASSET&reg; - Check-In Reports</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -550,6 +549,76 @@
         .footer-space {
             height: 30px;
         }
+
+        /* ---- FASSET typed tagline — matches this page's light theme
+           (navy text, gold accent from the header shimmer) rather than
+           the white-on-blue version used on the Registration screen. ---- */
+        @@import url('https://fonts.googleapis.com/css?family=Montserrat');
+
+        .typed-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 4px 16px 40px;
+        }
+
+            .typed-section p {
+                font-family: 'Montserrat', sans-serif;
+                font-size: 1.4rem;
+                font-weight: bold;
+                letter-spacing: 0.05rem;
+                text-align: center;
+                color: #1b3f6e;
+                margin: 0;
+                line-height: 1.4;
+                max-width: 100%;
+                overflow-wrap: anywhere;
+            }
+
+                .typed-section p span.typed-text {
+                    font-weight: normal;
+                    color: #f2c40c;
+                }
+
+                .typed-section p span.cursor {
+                    display: inline-block;
+                    background-color: #7c8798;
+                    margin-left: 0.1rem;
+                    width: 3px;
+                    animation: tagBlink 1s infinite;
+                }
+
+                    .typed-section p span.cursor.typing {
+                        animation: none;
+                    }
+
+        @@keyframes tagBlink {
+            0% {
+                background-color: #7c8798;
+            }
+
+            49% {
+                background-color: #7c8798;
+            }
+
+            50% {
+                background-color: transparent;
+            }
+
+            99% {
+                background-color: transparent;
+            }
+
+            100% {
+                background-color: #7c8798;
+            }
+        }
+
+        @@media (max-width: 600px) {
+            .typed-section p {
+                font-size: 1.05rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -800,6 +869,10 @@
 
     <div class="footer-space"></div>
 
+    <div class="typed-section">
+        <p>FASSET is <span class="typed-text"></span><span class="cursor">&nbsp;</span></p>
+    </div>
+
     <div id="tableModalBackdrop" class="modal-backdrop" onclick="if (event.target === this) closeTableModal();">
         <div class="modal-box">
             <div class="modal-box-header">
@@ -977,66 +1050,24 @@
         }
 
         function exportToExcel() {
-            if (!lastReportData) {
-                alert('Report data is still loading - try again in a moment.');
-                return;
-            }
-            var d = lastReportData;
-            var wb = XLSX.utils.book_new();
-
-            function addSheet(name, rows) {
-                var ws = XLSX.utils.json_to_sheet(rows);
-                XLSX.utils.book_append_sheet(wb, ws, name);
-            }
-
-            addSheet('Summary', [
-                { Metric: 'Total check-ins', Value: d.summary.totalCheckIns },
-                { Metric: 'Unique employees', Value: d.summary.uniqueEmployees },
-                { Metric: 'Days in range', Value: d.summary.dateRangeDays },
-                { Metric: 'Average arrival time', Value: d.averageArrivalTime },
-                { Metric: 'On time', Value: d.lateVsOnTime.onTime },
-                { Metric: 'Late (after ' + d.lateVsOnTime.threshold + ')', Value: d.lateVsOnTime.late }
-            ]);
-
-            addSheet('Employee Attendance', d.employeeAttendance.map(function (r) {
-                return { Employee: r.employeeName, Expected: r.expectedDays, Actual: r.actualDays, 'Rate %': r.ratePercent === null ? 'Not scheduled' : r.ratePercent };
-            }));
-
-            addSheet('Attendance by Department', d.attendanceRateByDepartment.map(function (r) {
-                return { Department: r.label, 'Checked In': r.checkedIn, Headcount: r.headcount, 'Rate %': r.ratePercent };
-            }));
-
-            addSheet('Check-ins by Department', d.byDepartment.map(function (r) {
-                return { Department: r.label, 'Check-ins': r.count };
-            }));
-
-            addSheet('By Day of Week', d.byDayOfWeek.map(function (r) {
-                return { Day: r.label, 'Check-ins': r.count };
-            }));
-
-            addSheet('By Hour of Day', d.byHour.map(function (r) {
-                return { Hour: r.label, 'Check-ins': r.count };
-            }));
-
-            addSheet('By Week', d.byWeek.map(function (r) {
-                return { Week: r.label, 'Check-ins': r.count };
-            }));
-
-            addSheet('By Month', d.byMonth.map(function (r) {
-                return { Month: r.label, 'Check-ins': r.count };
-            }));
-
-            addSheet('By Location', d.byLocation.map(function (r) {
-                return { Location: r.label, 'Check-ins': r.count };
-            }));
-
-            addSheet('Occupational Level', d.byOccupationalLevel.map(function (r) {
-                return { Level: r.label, Count: r.count };
-            }));
-
             var start = document.getElementById('startDate').value;
             var end = document.getElementById('endDate').value;
-            XLSX.writeFile(wb, 'FASSET_CheckIn_Report_' + start + '_to_' + end + '.xlsx');
+            var dept = document.getElementById('departmentSelect').value;
+            var location = document.getElementById('locationSelect').value;
+            var lateAfter = document.getElementById('lateAfter').value;
+
+            // The Excel file (with the logo, colors, native charts, and
+            // filterable tables) is now built server-side via EPPlus in
+            // Reports/ExportExcel, not in the browser - SheetJS's free tier
+            // can't do any of those. Navigating to the URL triggers the
+            // file download directly.
+            var url = '@Url.Action("ExportExcel", "Reports")'
+                + '?start=' + encodeURIComponent(start)
+                + '&end=' + encodeURIComponent(end)
+                + '&department=' + encodeURIComponent(dept)
+                + '&location=' + encodeURIComponent(location)
+                + '&lateAfter=' + encodeURIComponent(lateAfter);
+            window.location.href = url;
         }
 
         function todayStr() { return new Date().toISOString().slice(0, 10); }
@@ -1224,6 +1255,53 @@
         document.getElementById('startDate').value = daysAgoStr(30);
         document.getElementById('endDate').value = todayStr();
         loadReport();
+
+        // ---- FASSET typed tagline ----
+        const typedTextSpan = document.querySelector(".typed-text");
+        const cursorSpan = document.querySelector(".cursor");
+        const textArray = [
+            "e-CheckIn",
+            "striving for excellence through hard work",
+            "working with honesty and integrity",
+            "making a difference",
+            "valuing people",
+            "innovation"
+        ];
+        const typingDelay = 60;
+        const erasingDelay = 30;
+        const newTextDelay = 2500;
+        let textArrayIndex = 0;
+        let charIndex = 0;
+
+        function type() {
+            if (charIndex < textArray[textArrayIndex].length) {
+                if (!cursorSpan.classList.contains("typing")) cursorSpan.classList.add("typing");
+                typedTextSpan.textContent += textArray[textArrayIndex].charAt(charIndex);
+                charIndex++;
+                setTimeout(type, typingDelay);
+            } else {
+                cursorSpan.classList.remove("typing");
+                setTimeout(erase, newTextDelay);
+            }
+        }
+
+        function erase() {
+            if (charIndex > 0) {
+                if (!cursorSpan.classList.contains("typing")) cursorSpan.classList.add("typing");
+                typedTextSpan.textContent = textArray[textArrayIndex].substring(0, charIndex - 1);
+                charIndex--;
+                setTimeout(erase, erasingDelay);
+            } else {
+                cursorSpan.classList.remove("typing");
+                textArrayIndex++;
+                if (textArrayIndex >= textArray.length) textArrayIndex = 0;
+                setTimeout(type, typingDelay + 1100);
+            }
+        }
+
+        if (textArray.length && typedTextSpan && cursorSpan) {
+            setTimeout(type, newTextDelay + 250);
+        }
     </script>
 </body>
 </html>
