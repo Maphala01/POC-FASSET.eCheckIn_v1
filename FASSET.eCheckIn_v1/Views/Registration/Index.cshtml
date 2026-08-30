@@ -1,4 +1,4 @@
-﻿@model FASSET.eCheckIn_v1.Models.RegistrationModel
+@model FASSET.eCheckIn_v1.Models.RegistrationModel
 
 @{
     Layout = "~/Views/Shared/_LayoutBare.cshtml";
@@ -11,306 +11,355 @@
 <link href="~/Content/StyleSheet.css" rel="stylesheet" />
 <link href="~/Content/select2.min.css" rel="stylesheet" />
 <style>
-        body {
-            background: linear-gradient(120deg, #0f7fa3, #0ea5e9, #1b3f6e, #14b8a6);
-            background-size: 300% 300%;
-            animation: bodyGradientShift 16s ease infinite;
+    html, body {
+        overflow-x: hidden;
+        max-width: 100%;
+    }
+
+    body {
+        background: linear-gradient(120deg, #0f7fa3, #0ea5e9, #1b3f6e, #14b8a6);
+        background-size: 300% 300%;
+        animation: bodyGradientShift 16s ease infinite;
+    }
+
+    @@keyframes bodyGradientShift {
+        0% {
+            background-position: 0% 50%;
         }
 
-        @@keyframes bodyGradientShift {
-            0% {
-                background-position: 0% 50%;
-            }
-
-            50% {
-                background-position: 100% 50%;
-            }
-
-            100% {
-                background-position: 0% 50%;
-            }
+        50% {
+            background-position: 100% 50%;
         }
 
-        .content {
-            background: #ffffff;
-            max-width: 420px;
-            margin: -60px auto 0 auto;
-            padding: 0 0 28px 0;
-            border-radius: 14px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-            overflow: hidden;
-            text-align: center;
-            position: relative;
+        100% {
+            background-position: 0% 50%;
         }
+    }
 
-        .cld-responsive {
-            width: 100%;
-            display: block;
-        }
+    .content {
+        background: #ffffff;
+        max-width: 420px;
+        width: 100%;
+        box-sizing: border-box;
+        margin: 8px auto 0 auto;
+        padding: 0 0 28px 0;
+        border-radius: 14px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        overflow: hidden;
+        text-align: center;
+        position: relative;
+    }
 
-        .form-title {
-            font-size: 22px;
-            margin: 16px 0 10px 0;
-        }
+    .cld-responsive {
+        width: 100%;
+        display: block;
+    }
 
-        .clock-box {
-            display: inline-block;
-            border: 1px solid #d5d5d5;
-            border-radius: 10px;
-            padding: 8px 20px;
-            font-size: 17px;
-            font-weight: bold;
-            margin: 0 auto 18px auto;
-        }
+    .form-title {
+        font-size: 22px;
+        margin: 16px 0 10px 0;
+    }
 
-        #checkinFormContainer {
-            padding: 0 28px;
-        }
+    .clock-box {
+        display: inline-block;
+        border: 1px solid #d5d5d5;
+        border-radius: 10px;
+        padding: 8px 20px;
+        font-size: 17px;
+        font-weight: bold;
+        margin: 0 auto 18px auto;
+    }
 
-        .pin-section {
-            margin-bottom: 18px;
-        }
+    #checkinFormContainer {
+        padding: 0 28px;
+    }
 
-        #pinMeButton {
-            background-color: #1b3f6e;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 18px;
-            font-size: 15px;
-            cursor: pointer;
-            transition: background-color 0.2s ease, opacity 0.2s ease;
-        }
+    .pin-section {
+        margin-bottom: 18px;
+    }
 
-            #pinMeButton:hover:not(:disabled) {
-                background-color: #14304f;
-                animation: pinGlitch 0.2s linear infinite;
-                text-shadow: 2px 0 #ff2079, -2px 0 #21e6ff;
-            }
+    #pinMeButton {
+        background-color: #1b3f6e;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 18px;
+        font-size: 15px;
+        cursor: pointer;
+        transition: background-color 0.2s ease, opacity 0.2s ease;
+    }
 
-        @@keyframes pinGlitch {
-            0% {
-                transform: translate(0, 0);
-            }
-
-            20% {
-                transform: translate(-2px, 1px);
-            }
-
-            40% {
-                transform: translate(2px, -1px);
-            }
-
-            60% {
-                transform: translate(-1px, -2px);
-            }
-
-            80% {
-                transform: translate(1px, 2px);
-            }
-
-            100% {
-                transform: translate(0, 0);
-            }
-        }
-
-        #pinMeButton.loading {
+        #pinMeButton:hover:not(:disabled) {
+            background-color: #14304f;
             animation: pinGlitch 0.2s linear infinite;
             text-shadow: 2px 0 #ff2079, -2px 0 #21e6ff;
         }
 
-        #pinMeButton.pinned {
-            background-color: #2e9e4a;
+    @@keyframes pinGlitch {
+        0% {
+            transform: translate(0, 0);
         }
 
-        #pinMeButton:disabled {
+        20% {
+            transform: translate(-2px, 1px);
+        }
+
+        40% {
+            transform: translate(2px, -1px);
+        }
+
+        60% {
+            transform: translate(-1px, -2px);
+        }
+
+        80% {
+            transform: translate(1px, 2px);
+        }
+
+        100% {
+            transform: translate(0, 0);
+        }
+    }
+
+    #pinMeButton.loading {
+        animation: pinGlitch 0.2s linear infinite;
+        text-shadow: 2px 0 #ff2079, -2px 0 #21e6ff;
+    }
+
+    #pinMeButton.pinned {
+        background-color: #2e9e4a;
+    }
+
+    #pinMeButton:disabled {
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+        #pinMeButton:disabled.pinned {
+            opacity: 0.9;
+        }
+
+    #pinStatus {
+        display: block;
+        margin-top: 8px;
+        font-size: 13px;
+        color: #555;
+    }
+
+    .alert {
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 14px;
+        text-align: left;
+    }
+
+    .alert-danger {
+        background-color: #fbe6e6;
+        color: #a33333;
+        border: 1px solid #eec9c9;
+    }
+
+    .alert-success {
+        background-color: #e6f6e9;
+        color: #2e7d3a;
+        border: 1px solid #c7e9cd;
+    }
+
+    .input-animated {
+        text-align: left;
+        margin-bottom: 14px;
+    }
+
+    #submit-button {
+        width: 100%;
+        padding: 12px;
+        background-color: #4caf50;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: opacity 0.2s ease;
+    }
+
+        #submit-button:disabled {
+            background-color: #a9c9ab;
             cursor: not-allowed;
-            pointer-events: none;
         }
 
-            #pinMeButton:disabled.pinned {
-                opacity: 0.9;
+    /* Submit progress overlay */
+    .submit-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 63, 82, 0.92);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 999999 !important;
+    }
+
+    .submit-overlay-card {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 36px 40px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .spinner {
+        width: 54px;
+        height: 54px;
+        border: 5px solid #e0e0e0;
+        border-top-color: #1b3f6e;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-bottom: 18px;
+    }
+
+    @@keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .submit-progress-track {
+        width: 220px;
+        height: 8px;
+        background: #e6e6e6;
+        border-radius: 5px;
+        overflow: hidden;
+        margin-bottom: 14px;
+    }
+
+    .submit-progress-fill {
+        height: 100%;
+        width: 0%;
+        background: #1b3f6e;
+        border-radius: 5px;
+        transition: width 0.4s ease;
+    }
+
+    .submit-counter {
+        font-size: 16px;
+        font-weight: bold;
+        color: #1b3f6e;
+    }
+
+    @@import url('https://fonts.googleapis.com/css?family=Montserrat');
+
+    /* Tagline now sits ABOVE the card, so it needs normal top padding
+       instead of the negative margin that used to pull it up under
+       the card when it lived at the bottom of the page. */
+    .typed-section {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 16px 16px 4px;
+    }
+
+        .typed-section p {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.75rem;
+            font-weight: bold;
+            letter-spacing: 0.05rem;
+            text-align: center;
+            color: #ffffff;
+            margin: 0;
+            line-height: 1.4;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+        }
+
+            .typed-section p span.typed-text {
+                font-weight: normal;
+                color: gold;
             }
 
-        #pinStatus {
-            display: block;
-            margin-top: 8px;
-            font-size: 13px;
-            color: #555;
+            .typed-section p span.cursor {
+                display: inline-block;
+                background-color: #e2e8f0;
+                margin-left: 0.1rem;
+                width: 3px;
+                animation: blink 1s infinite;
+            }
+
+                .typed-section p span.cursor.typing {
+                    animation: none;
+                }
+
+    @@keyframes blink {
+        0% {
+            background-color: #e2e8f0;
         }
 
-        .alert {
-            border-radius: 8px;
-            padding: 10px 14px;
+        49% {
+            background-color: #e2e8f0;
+        }
+
+        50% {
+            background-color: transparent;
+        }
+
+        99% {
+            background-color: transparent;
+        }
+
+        100% {
+            background-color: #e2e8f0;
+        }
+    }
+
+    /* ============================================================
+       MOBILE: shrink the header banner and tighten vertical spacing
+       so the whole card (tagline + logo + clock + form + button)
+       fits without needing to scroll on a typical phone viewport.
+       ============================================================ */
+    @@media (max-width: 600px) {
+        .typed-section {
+            padding: 10px 12px 4px;
+        }
+
+            .typed-section p {
+                font-size: 1.15rem;
+            }
+
+        .content {
+            margin-top: 6px;
+        }
+        /* Crop the tall banner image down to a short strip instead of
+           shrinking its width — keeps it full-bleed but much shorter. */
+        .cld-responsive {
+            max-height: 90px;
+            object-fit: cover;
+            object-position: center 30%;
+        }
+
+        .form-title {
+            font-size: 18px;
+            margin: 10px 0 8px 0;
+        }
+
+        .clock-box {
+            padding: 6px 14px;
             font-size: 14px;
-            text-align: left;
+            margin-bottom: 12px;
         }
 
-        .alert-danger {
-            background-color: #fbe6e6;
-            color: #a33333;
-            border: 1px solid #eec9c9;
+        #checkinFormContainer {
+            padding: 0 18px;
         }
 
-        .alert-success {
-            background-color: #e6f6e9;
-            color: #2e7d3a;
-            border: 1px solid #c7e9cd;
+        .pin-section {
+            margin-bottom: 12px;
         }
 
         .input-animated {
-            text-align: left;
-            margin-bottom: 14px;
+            margin-bottom: 10px;
         }
-
-        #submit-button {
-            width: 100%;
-            padding: 12px;
-            background-color: #4caf50;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: opacity 0.2s ease;
-        }
-
-            #submit-button:disabled {
-                background-color: #a9c9ab;
-                cursor: not-allowed;
-            }
-
-        /* Submit progress overlay */
-        .submit-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(15, 63, 82, 0.92);
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 999999 !important;
-        }
-
-        .submit-overlay-card {
-            background: #ffffff;
-            border-radius: 14px;
-            padding: 36px 40px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .spinner {
-            width: 54px;
-            height: 54px;
-            border: 5px solid #e0e0e0;
-            border-top-color: #1b3f6e;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-bottom: 18px;
-        }
-
-        @@keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .submit-progress-track {
-            width: 220px;
-            height: 8px;
-            background: #e6e6e6;
-            border-radius: 5px;
-            overflow: hidden;
-            margin-bottom: 14px;
-        }
-
-        .submit-progress-fill {
-            height: 100%;
-            width: 0%;
-            background: #1b3f6e;
-            border-radius: 5px;
-            transition: width 0.4s ease;
-        }
-
-        .submit-counter {
-            font-size: 16px;
-            font-weight: bold;
-            color: #1b3f6e;
-        }
-
-        @@import url('https://fonts.googleapis.com/css?family=Montserrat');
-
-    .typed-section {
-        /*        background: #0f7fa3 !important;   */
-        /* display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-top: -110px !important;
-            padding: 0px 16px 32px;*/
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 28px 16px 6px;
     }
-
-            .typed-section p {
-                font-family: 'Montserrat', sans-serif;
-                font-size: 1.75rem;
-                font-weight: bold;
-                letter-spacing: 0.05rem;
-                text-align: center;
-                color: #1E293B;
-                margin: 0;
-                line-height: 1.4;
-            }
-
-                .typed-section p span.typed-text {
-                    font-weight: normal;
-                    color: gold;
-                }
-
-                .typed-section p span.cursor {
-                    display: inline-block;
-                    background-color: #475569;
-                    margin-left: 0.1rem;
-                    width: 3px;
-                    animation: blink 1s infinite;
-                }
-
-                    .typed-section p span.cursor.typing {
-                        animation: none;
-                    }
-
-        @@keyframes blink {
-            0% {
-                background-color: #475569;
-            }
-
-            49% {
-                background-color: #475569;
-            }
-
-            50% {
-                background-color: transparent;
-            }
-
-            99% {
-                background-color: transparent;
-            }
-
-            100% {
-                background-color: #475569;
-            }
-        }
-
-        @@media (max-width: 500px) {
-            .typed-section p {
-                font-size: 1.25rem;
-            }
-        }
 </style>
 
 <div class="typed-section">
@@ -328,35 +377,9 @@
 
         @if (ViewBag.Message != null)
         {
-            <script>
-                    $(function () {
-                        var msg = @Html.Raw(Json.Encode(ViewBag.Message.ToString()));
-                        var type = '@ViewBag.MessageType';
-                        if (type === 'error') {
-                            toastr.error(msg);
-                        } else {
-                            toastr.success(msg);
-                        }
-                    });
-            </script>
-            <script>
-                toastr.options = {
-                    'closeButton': false,
-                    'debug': false,
-                    'newestOnTop': false,
-                    'progressBar': true,
-                    'positionClass': 'toast-top-full-width',
-                    'preventDuplicates': false,
-                    'showDuration': '1000',
-                    'hideDuration': '1000',
-                    'timeOut': '5000',
-                    'extendedTimeOut': '1000',
-                    'showEasing': 'swing',
-                    'hideEasing': 'linear',
-                    'showMethod': 'fadeIn',
-                    'hideMethod': 'slideUp',
-                }
-            </script>
+            <div class="alert @(ViewBag.MessageType == "error" ? "alert-danger" : "alert-success")" style="margin: 0 28px 16px 28px;">
+                @ViewBag.Message
+            </div>
         }
 
         <div id="checkinFormContainer">
@@ -415,7 +438,6 @@
         </div>
     </div>
 </div>
-
 
 <div id="submitOverlay" class="submit-overlay">
     <div class="submit-overlay-card">
