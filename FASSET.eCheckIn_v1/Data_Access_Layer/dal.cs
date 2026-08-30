@@ -41,11 +41,54 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             string empGeoLocation = geoLocation;
             string empTOTP = "NULL";
 
+            // South Africa has no daylight saving, so UTC+2 is always
+            // correct - this is used both for the duplicate-check-in
+            // guard below and for correcting the timestamp after insert,
+            // so neither depends on the SQL Server machine's own clock
+            // or timezone configuration (which is what caused the
+            // 2-hour-off timestamps - GETDATE() inside the stored
+            // procedure returns whatever timezone the server OS is set
+            // to, not necessarily SAST).
+            DateTime sastNow;
+            try
+            {
+                var sastZone = TimeZoneInfo.FindSystemTimeZoneById("South Africa Standard Time");
+                sastNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, sastZone);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                // Fallback if this Windows timezone ID isn't registered on
+                // this particular server - SAST is always exactly UTC+2.
+                sastNow = DateTime.UtcNow.AddHours(2);
+            }
 
             int res = 0;
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
-                //res = Convert.ToInt32(outputParam.Value);
+                connection.Open();
+
+                // Guard against duplicate check-ins for the same person on
+                // the same (SAST) day - checked BEFORE calling the stored
+                // procedure at all, so a second/third submission never
+                // reaches the INSERT in the first place, regardless of
+                // whatever duplicate-detection logic (or lack of it) exists
+                // inside mst_spCheckInEmployee itself.
+                int? employeeId = ResolveEmployeeIdByName(empName);
+                if (employeeId.HasValue)
+                {
+                    var dupCheckCmd = new SqlCommand(
+                        "SELECT COUNT(1) FROM [dbo].[mst_dailyCheckIn_tbl] WHERE Name = @EmployeeId AND CAST(dateCreated AS DATE) = @Today",
+                        connection);
+                    dupCheckCmd.Parameters.AddWithValue("@EmployeeId", employeeId.Value);
+                    dupCheckCmd.Parameters.AddWithValue("@Today", sastNow.Date);
+
+                    int alreadyCheckedIn = Convert.ToInt32(dupCheckCmd.ExecuteScalar());
+                    if (alreadyCheckedIn > 0)
+                    {
+                        return 0; // "You are checked in already!" - same code the controller already handles
+                    }
+                }
+
                 SqlCommand sql_cmd = new SqlCommand("mst_spCheckInEmployee", connection);
                 sql_cmd.CommandType = CommandType.StoredProcedure;
 
@@ -63,10 +106,38 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
                 };
                 sql_cmd.Parameters.Add(outputParam);
 
-                connection.Open();
                 sql_cmd.ExecuteNonQuery();
 
                 res = Convert.ToInt32(outputParam.Value);
+
+                // Correct the just-inserted row's timestamp to real SAST
+                // time, rather than trusting whatever GETDATE() returned
+                // inside the stored procedure. Best-effort: if this fails
+                // for any reason, the check-in itself still succeeded, so
+                // it's wrapped separately and never surfaces as an error
+                // to the person checking in.
+                if (res == 99)
+                {
+                    try
+                    {
+                        var identityCmd = new SqlCommand("SELECT CAST(SCOPE_IDENTITY() AS INT)", connection);
+                        var newIdObj = identityCmd.ExecuteScalar();
+                        if (newIdObj != null && newIdObj != DBNull.Value)
+                        {
+                            var fixTimestampCmd = new SqlCommand(
+                                "UPDATE [dbo].[mst_dailyCheckIn_tbl] SET dateCreated = @DateCreated WHERE Id = @Id",
+                                connection);
+                            fixTimestampCmd.Parameters.AddWithValue("@DateCreated", sastNow);
+                            fixTimestampCmd.Parameters.AddWithValue("@Id", Convert.ToInt32(newIdObj));
+                            fixTimestampCmd.ExecuteNonQuery();
+                        }
+                    }
+                    catch
+                    {
+                        // Timestamp correction is best-effort - never let it
+                        // fail a check-in that already succeeded.
+                    }
+                }
             }
             return res;
         }
