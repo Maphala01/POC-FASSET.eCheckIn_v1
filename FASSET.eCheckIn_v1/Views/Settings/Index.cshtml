@@ -1,0 +1,1017 @@
+﻿@using FASSET.eCheckIn_v1.Models
+@{
+    Layout = null;
+    var sites = ViewBag.Sites as List<SiteInfo> ?? new List<SiteInfo>();
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>FASSET&reg; - Settings</title>
+    <style>
+        @@import url('https://fonts.googleapis.com/css?family=Montserrat');
+
+        .sidebar-pin-btn {
+            background: rgba(255,255,255,0.12);
+            border: none;
+            color: rgba(255,255,255,0.85);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            flex-shrink: 0;
+            margin-left: auto;
+            opacity: 0;
+            transition: opacity 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+        }
+
+        .sidebar:hover .sidebar-pin-btn {
+            opacity: 1;
+        }
+
+        .sidebar-pin-btn:hover {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+        }
+
+        .sidebar-pin-btn svg {
+            width: 18px;
+            height: 18px;
+            display: block;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        /* Pinned = the pin is "pushed in", tilted like a real thumbtack.
+           Unpinned = upright. */
+        .sidebar.pinned .sidebar-pin-btn svg {
+            transform: rotate(45deg);
+        }
+
+        .sidebar-pin-btn:active svg {
+            transform: scale(0.82);
+        }
+
+        .sidebar.pinned .sidebar-pin-btn:active svg {
+            transform: rotate(45deg) scale(0.82);
+        }
+
+        .sidebar.pinned .sidebar-pin-btn {
+            color: #f2b705;
+            opacity: 1;
+        }
+
+        .sidebar.pinned {
+            width: 260px !important;
+        }
+
+            .sidebar.pinned .sidebar-brand-text,
+            .sidebar.pinned .sidebar-section-label {
+                opacity: 1;
+            }
+
+        .main-content {
+            transition: margin-left 0.2s ease;
+        }
+
+        .sidebar.pinned ~ .main-content {
+            margin-left: 260px;
+        }
+
+
+        .typed-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px 16px;
+            background: #fff;
+            border-bottom: 1px solid #e6ebf1;
+        }
+
+            .typed-section p {
+                font-family: 'Montserrat', sans-serif;
+                font-size: 1.05rem;
+                font-weight: bold;
+                letter-spacing: 0.05rem;
+                text-align: center;
+                color: #1b3f6e;
+                margin: 0;
+                line-height: 1.4;
+                max-width: 100%;
+                overflow-wrap: anywhere;
+            }
+
+                .typed-section p span.typed-text {
+                    font-weight: normal;
+                    color: #ff5449;
+                }
+
+                .typed-section p span.cursor {
+                    display: inline-block;
+                    background-color: #7c8798;
+                    margin-left: 0.1rem;
+                    width: 3px;
+                    animation: tagBlink 1s infinite;
+                }
+
+                    .typed-section p span.cursor.typing {
+                        animation: none;
+                    }
+
+        @@keyframes tagBlink {
+            0% {
+                background-color: #7c8798;
+            }
+
+            49% {
+                background-color: #7c8798;
+            }
+
+            50% {
+                background-color: transparent;
+            }
+
+            99% {
+                background-color: transparent;
+            }
+
+            100% {
+                background-color: #7c8798;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+            color: #23303d;
+            background-color: #eef1f6;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 60px;
+            overflow: hidden;
+            white-space: nowrap;
+            background: linear-gradient(180deg, #1b3f6e 0%, #16345c 55%, #12294a 100%);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            transition: width 0.2s ease;
+        }
+
+        @@media (min-width: 993px) {
+            .sidebar:hover {
+                width: 260px;
+            }
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 26px 14px;
+        }
+
+        .sidebar-logo {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            flex-shrink: 0;
+            object-fit: contain;
+        }
+
+        .sidebar-brand-text {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            opacity: 0;
+            white-space: nowrap;
+            transition: opacity 0.15s ease;
+        }
+
+        .sidebar:hover .sidebar-brand-text {
+            opacity: 1;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.18);
+            margin: 4px 24px 14px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 0 14px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .sidebar-section-label {
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.45);
+            padding: 16px 14px 6px;
+            opacity: 0;
+            white-space: nowrap;
+            transition: opacity 0.15s ease;
+        }
+
+        .sidebar:hover .sidebar-section-label {
+            opacity: 1;
+        }
+
+        .sidebar-section-label:first-child {
+            padding-top: 4px;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            font-size: 12.5px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+            white-space: nowrap;
+        }
+
+        .sidebar:hover .sidebar-link, .sidebar.pinned .sidebar-link {
+            justify-content: flex-start;
+        }
+
+        .sidebar-link svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            opacity: 0.9;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .sidebar-link.active {
+            background: rgba(255,255,255,0.16);
+            color: #fff;
+        }
+
+        .main-content {
+            margin-left: 60px;
+        }
+
+        .topnav {
+            background: #fff;
+            padding: 14px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .topnav-gradient-line {
+            height: 3px;
+            width: 100%;
+            background: linear-gradient(90deg, #ff5449, #f2b705, #16a3d1, #2e9e4a, #ff5449);
+            background-size: 300% 100%;
+            animation: titleUnderlineShift 4s linear infinite;
+        }
+
+        @@keyframes titleUnderlineShift {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            100% {
+                background-position: 300% 50%;
+            }
+        }
+
+        .topnav-title {
+            font-size: 12.5px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #8792a3;
+        }
+
+            .topnav-title a {
+                color: #8792a3;
+                text-decoration: none;
+            }
+
+                .topnav-title a:hover {
+                    color: #1b3f6e;
+                }
+
+        .page-header {
+            padding: 28px 30px 0;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+
+            .page-header h1 {
+                font-size: 22px;
+                font-weight: 700;
+                color: #2a3646;
+                margin: 0 0 4px;
+            }
+
+            .page-header p {
+                font-size: 13px;
+                color: #8792a3;
+                margin: 0;
+                max-width: 560px;
+            }
+
+        #addSiteBtn {
+            background: linear-gradient(135deg, #ff7a45, #ff5449);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 11px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(255,84,73,0.3);
+            white-space: nowrap;
+        }
+
+        .table-card {
+            background: #fff;
+            border: 1px solid #e6ebf1;
+            border-radius: 14px;
+            box-shadow: 0 4px 14px rgba(20,48,79,0.06);
+            margin: 20px 30px 40px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13.5px;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 14px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #ff5449;
+            background: #fafbfc;
+            border-bottom: 2px solid #f0f2f5;
+        }
+
+        td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #f0f2f5;
+            color: #445;
+        }
+
+        tbody tr:hover {
+            background-color: #f7f9fb;
+        }
+
+        .row-actions button {
+            border: 1px solid #dde3ea;
+            background: #f7f9fb;
+            color: #445;
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-right: 6px;
+        }
+
+            .row-actions button:hover {
+                background: #eef2f6;
+            }
+
+            .row-actions button.danger:hover {
+                background: #fbe6e6;
+                color: #a33333;
+            }
+
+        .empty-note {
+            padding: 30px;
+            color: #99a3b3;
+            font-size: 13.5px;
+        }
+
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 40, 74, 0.6);
+            z-index: 999999;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .modal-backdrop.show {
+                display: flex;
+            }
+
+        .modal-box {
+            background: #fff;
+            border-radius: 14px;
+            max-width: 460px;
+            width: 92%;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+        }
+
+        .modal-box-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 22px;
+            border-bottom: 1px solid #eee;
+        }
+
+            .modal-box-header h3 {
+                margin: 0;
+                font-size: 16px;
+                font-weight: 600;
+                color: #1b3f6e;
+            }
+
+        .modal-close-btn {
+            border: none;
+            background: none;
+            font-size: 20px;
+            line-height: 1;
+            color: #889;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .modal-box-body {
+            padding: 20px 22px;
+        }
+
+        .form-field {
+            margin-bottom: 14px;
+        }
+
+            .form-field label {
+                display: block;
+                font-size: 11.5px;
+                font-weight: 600;
+                color: #8792a3;
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+                margin-bottom: 6px;
+            }
+
+            .form-field input {
+                width: 100%;
+                padding: 9px 11px;
+                border: 1px solid #d7dde3;
+                border-radius: 7px;
+                font-size: 13.5px;
+            }
+
+                .form-field input:focus {
+                    outline: none;
+                    border-color: #ff5449;
+                }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+            .form-row .form-field {
+                flex: 1;
+            }
+
+        .field-hint {
+            font-size: 11.5px;
+            color: #99a3b3;
+            margin-top: 4px;
+        }
+
+        .modal-box-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 14px 22px;
+            border-top: 1px solid #eee;
+        }
+
+            .modal-box-footer button {
+                border-radius: 7px;
+                padding: 9px 18px;
+                font-size: 13px;
+                font-weight: 600;
+                cursor: pointer;
+                border: none;
+            }
+
+        .btn-cancel {
+            background: #f2f4f8;
+            color: #556;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #ff7a45, #ff5449);
+            color: #fff;
+        }
+
+        .form-error {
+            color: #a33333;
+            font-size: 12.5px;
+            margin-top: -8px;
+            margin-bottom: 12px;
+            display: none;
+        }
+
+        /* ---- Offline check-ins card ---- */
+        .offline-card {
+            background: #fff;
+            border: 1px solid #e6ebf1;
+            border-radius: 14px;
+            box-shadow: 0 4px 14px rgba(20,48,79,0.06);
+            margin: 0 30px 40px;
+            padding: 18px 22px;
+        }
+
+        .offline-card-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .offline-card h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2a3646;
+            margin: 0 0 4px;
+        }
+
+        .offline-card p {
+            font-size: 13px;
+            color: #8792a3;
+            margin: 0;
+            max-width: 620px;
+        }
+
+        #syncOfflineBtn {
+            background: linear-gradient(135deg, #ff7a45, #ff5449);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            box-shadow: 0 3px 10px rgba(255,84,73,0.3);
+        }
+
+            #syncOfflineBtn:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+            }
+
+        .offline-status {
+            font-size: 13.5px;
+            color: #445;
+            margin-top: 12px;
+            line-height: 1.7;
+        }
+
+            .offline-status strong {
+                color: #1b3f6e;
+            }
+
+        .offline-warn {
+            color: #e05043 !important;
+            font-weight: 600;
+        }
+
+        .offline-folder {
+            color: #99a3b3;
+            font-size: 12px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <img src="~/Content/Small_Fasset.png" class="sidebar-logo" alt="FASSET" />
+            <div class="sidebar-brand-text">FASSET</div>
+            <button type="button" class="sidebar-pin-btn" onclick="toggleSidebarPin(event)" title="Pin sidebar open">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
+            </button>
+        </div>
+        <div class="sidebar-divider"></div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-section-label">Check-In</div>
+            <a href="@Url.Action("Index", "Registration")" class="sidebar-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round" /><circle cx="12" cy="12" r="9" /></svg>
+                Check In
+            </a>
+
+            <div class="sidebar-section-label">Reports</div>
+            <a href="@Url.Action("Index", "Reports")" class="sidebar-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
+                Dashboard
+            </a>
+
+            <div class="sidebar-section-label">Manage</div>
+            <a href="@Url.Action("Calendar", "Schedule")" class="sidebar-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" stroke-linecap="round" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" stroke-linecap="round" /></svg>
+                Schedule
+            </a>
+            <a href="@Url.Action("Index", "Employees")" class="sidebar-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0113 0" stroke-linecap="round" /><path d="M16 4.5a3.5 3.5 0 010 7M22 20a6 6 0 00-4.5-8.7" stroke-linecap="round" /></svg>
+                Employee Management
+            </a>
+            <a href="@Url.Action("Directory", "Employees")" class="sidebar-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87M9 7a4 4 0 118 0 4 4 0 01-8 0z" stroke-linecap="round" stroke-linejoin="round" /><circle cx="9" cy="17" r="4" /></svg>
+                FASSET Employees
+            </a>
+
+            <div class="sidebar-section-label">Account</div>
+            <a href="@Url.Action("Index", "Settings")" class="sidebar-link active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
+                Settings
+            </a>
+            <a href="@Url.Action("CreateAdmin", "Account")" class="sidebar-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke-linecap="round" /><circle cx="12" cy="7" r="4" /></svg>
+                Create Admin
+            </a>
+            <a href="#" class="sidebar-link" onclick="document.getElementById('logOutForm').submit(); return false;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke-linecap="round" stroke-linejoin="round" /><path d="M16 17l5-5-5-5M21 12H9" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                Log Out
+            </a>
+            @using (Html.BeginForm("Logout", "Account", FormMethod.Post, new { id = "logOutForm", style = "display:none;" })) { }
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <div class="topnav">
+            <div class="topnav-title"><a href="@Url.Action("Index", "Reports")">FASSET&reg; CHECK-IN REPORTS</a> &rsaquo; Settings</div>
+        </div>
+        <div class="topnav-gradient-line"></div>
+
+        <div class="typed-section">
+            <p>FASSET is <span class="typed-text"></span><span class="cursor">&nbsp;</span></p>
+        </div>
+
+        <div class="page-header">
+            <div>
+                <h1>Manage Sites</h1>
+                <p>These are the physical offices/sites used to resolve check-in GPS locations to a place name, and to filter reports and office pages. Add a site here whenever you extend to a new office (e.g. a provincial office) &mdash; it'll immediately be available across Reports, the Fasset Offices sidebar, and the location filters.</p>
+            </div>
+            <button type="button" id="addSiteBtn" onclick="openSiteModal()">+ Add Site</button>
+        </div>
+
+        @if (sites.Count == 0)
+        {
+            <div class="table-card">
+                <div class="empty-note">No sites configured yet.</div>
+            </div>
+        }
+        else
+        {
+            <div class="table-card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Site Name</th>
+                            <th>Latitude</th>
+                            <th>Longitude</th>
+                            <th>Radius (m)</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="siteTableBody">
+                        @foreach (var s in sites)
+                        {
+                            <tr data-id="@(s.Id)" data-name="@(s.SiteName)" data-lat="@(s.Latitude)" data-lng="@(s.Longitude)" data-radius="@(s.RadiusMeters)">
+                                <td>@s.SiteName</td>
+                                <td>@s.Latitude</td>
+                                <td>@s.Longitude</td>
+                                <td>@s.RadiusMeters</td>
+                                <td class="row-actions">
+                                    <button type="button" onclick="editSiteRow(this)">Edit</button>
+                                    <button type="button" class="danger" onclick="deleteSiteRow(this)">Delete</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        <div class="offline-card">
+            <div class="offline-card-head">
+                <div>
+                    <h2>Offline check-ins</h2>
+                    <p>If the database can't be reached, check-ins are saved to disk and written to the database automatically once it's back &mdash; with their original check-in time.</p>
+                </div>
+                <button type="button" id="syncOfflineBtn" onclick="syncOfflineNow()">Sync now</button>
+            </div>
+            <div id="offlineStatusBody" class="offline-status">Loading&hellip;</div>
+            <div id="offlineSyncMessage" class="offline-status"></div>
+        </div>
+    </div>
+
+    <div id="siteModalBackdrop" class="modal-backdrop" onclick="if (event.target === this) closeSiteModal();">
+        <div class="modal-box">
+            <div class="modal-box-header">
+                <h3 id="siteModalTitle">Add Site</h3>
+                <button type="button" class="modal-close-btn" onclick="closeSiteModal()">&times;</button>
+            </div>
+            <div class="modal-box-body">
+                <div class="form-error" id="siteFormError"></div>
+                <input type="hidden" id="siteId" value="" />
+                <div class="form-field">
+                    <label for="siteName">Site Name</label>
+                    <input type="text" id="siteName" placeholder="e.g. Polokwane Office" />
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="siteLat">Latitude</label>
+                        <input type="text" id="siteLat" placeholder="-23.9045" />
+                    </div>
+                    <div class="form-field">
+                        <label for="siteLng">Longitude</label>
+                        <input type="text" id="siteLng" placeholder="29.4689" />
+                    </div>
+                </div>
+                <div class="form-field">
+                    <label for="siteRadius">Radius (meters)</label>
+                    <input type="text" id="siteRadius" placeholder="150" />
+                    <div class="field-hint">How far from this point a check-in still counts as "in bounds" for this site.</div>
+                </div>
+            </div>
+            <div class="modal-box-footer">
+                <button type="button" class="btn-cancel" onclick="closeSiteModal()">Cancel</button>
+                <button type="button" class="btn-save" onclick="saveSite()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getAntiForgeryToken() {
+            var el = document.querySelector('input[name="__RequestVerificationToken"]');
+            return el ? el.value : '';
+        }
+
+        function openSiteModal() {
+            document.getElementById('siteModalTitle').textContent = 'Add Site';
+            document.getElementById('siteId').value = '';
+            document.getElementById('siteName').value = '';
+            document.getElementById('siteLat').value = '';
+            document.getElementById('siteLng').value = '';
+            document.getElementById('siteRadius').value = '150';
+            document.getElementById('siteFormError').style.display = 'none';
+            document.getElementById('siteModalBackdrop').classList.add('show');
+        }
+
+        function editSiteRow(btn) {
+            var row = btn.closest('tr');
+            document.getElementById('siteModalTitle').textContent = 'Edit Site';
+            document.getElementById('siteId').value = row.getAttribute('data-id');
+            document.getElementById('siteName').value = row.getAttribute('data-name') || '';
+            document.getElementById('siteLat').value = row.getAttribute('data-lat') || '';
+            document.getElementById('siteLng').value = row.getAttribute('data-lng') || '';
+            document.getElementById('siteRadius').value = row.getAttribute('data-radius') || '';
+            document.getElementById('siteFormError').style.display = 'none';
+            document.getElementById('siteModalBackdrop').classList.add('show');
+        }
+
+        function closeSiteModal() {
+            document.getElementById('siteModalBackdrop').classList.remove('show');
+        }
+
+        function saveSite() {
+            var id = document.getElementById('siteId').value;
+            var name = document.getElementById('siteName').value.trim();
+            var lat = document.getElementById('siteLat').value.trim();
+            var lng = document.getElementById('siteLng').value.trim();
+            var radius = document.getElementById('siteRadius').value.trim();
+            var errorEl = document.getElementById('siteFormError');
+
+            if (!name || !lat || !lng || !radius) {
+                errorEl.textContent = 'All fields are required.';
+                errorEl.style.display = 'block';
+                return;
+            }
+            if (isNaN(parseFloat(lat)) || isNaN(parseFloat(lng)) || isNaN(parseInt(radius, 10))) {
+                errorEl.textContent = 'Latitude, longitude, and radius must be numbers.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            var url = id ? '@Url.Action("UpdateSite", "Settings")' : '@Url.Action("CreateSite", "Settings")';
+            var bodyParts = [
+                'siteName=' + encodeURIComponent(name),
+                'latitude=' + encodeURIComponent(lat),
+                'longitude=' + encodeURIComponent(lng),
+                'radiusMeters=' + encodeURIComponent(radius)
+            ];
+            if (id) { bodyParts.push('id=' + encodeURIComponent(id)); }
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': getAntiForgeryToken()
+                },
+                body: withToken(bodyParts.join('&'))
+            })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    errorEl.textContent = data.message || 'Could not save site.';
+                    errorEl.style.display = 'block';
+                }
+            })
+            .catch(function () {
+                errorEl.textContent = 'Network error - could not save site.';
+                errorEl.style.display = 'block';
+            });
+        }
+
+        function deleteSiteRow(btn) {
+            var row = btn.closest('tr');
+            var id = row.getAttribute('data-id');
+            var name = row.getAttribute('data-name');
+
+            if (!confirm('Delete "' + name + '"? This cannot be undone, and existing check-ins will no longer resolve to this site.')) {
+                return;
+            }
+
+            fetch('@Url.Action("DeleteSite", "Settings")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': getAntiForgeryToken()
+                },
+                body: withToken('id=' + encodeURIComponent(id))
+            })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message || 'Could not delete site.');
+                }
+            })
+            .catch(function () {
+                alert('Network error - could not delete site.');
+            });
+        }
+
+        const typedTextSpan = document.querySelector(".typed-text");
+        const cursorSpan = document.querySelector(".cursor");
+        const textArray = [
+            "e-CheckIn",
+            "striving for excellence through hard work",
+            "working with honesty and integrity",
+            "making a difference",
+            "valuing people",
+            "innovation"
+        ];
+        const typingDelay = 60;
+        const erasingDelay = 30;
+        const newTextDelay = 2500;
+        let textArrayIndex = 0;
+        let charIndex = 0;
+
+        function type() {
+            if (charIndex < textArray[textArrayIndex].length) {
+                if (!cursorSpan.classList.contains("typing")) cursorSpan.classList.add("typing");
+                typedTextSpan.textContent += textArray[textArrayIndex].charAt(charIndex);
+                charIndex++;
+                setTimeout(type, typingDelay);
+            } else {
+                cursorSpan.classList.remove("typing");
+                setTimeout(erase, newTextDelay);
+            }
+        }
+
+        function erase() {
+            if (charIndex > 0) {
+                if (!cursorSpan.classList.contains("typing")) cursorSpan.classList.add("typing");
+                typedTextSpan.textContent = textArray[textArrayIndex].substring(0, charIndex - 1);
+                charIndex--;
+                setTimeout(erase, erasingDelay);
+            } else {
+                cursorSpan.classList.remove("typing");
+                textArrayIndex++;
+                if (textArrayIndex >= textArray.length) textArrayIndex = 0;
+                setTimeout(type, typingDelay + 1100);
+            }
+        }
+
+        if (textArray.length && typedTextSpan && cursorSpan) {
+            setTimeout(type, newTextDelay + 250);
+        }
+
+        // MVC's [ValidateAntiForgeryToken] reads the token from the form BODY
+        // (field name __RequestVerificationToken), not from a request header.
+        function withToken(body) {
+            return body + '&__RequestVerificationToken=' + encodeURIComponent(getAntiForgeryToken());
+        }
+
+        function escapeHtml(text) {
+            return String(text === null || text === undefined ? '' : text)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function loadOfflineStatus() {
+            var el = document.getElementById('offlineStatusBody');
+            fetch('@Url.Action("OfflineStatus", "Settings")', { credentials: 'same-origin' })
+                .then(function (res) { return res.json(); })
+                .then(function (s) {
+                    var html = '<div><strong>' + s.Pending + '</strong> waiting to sync';
+                    if (s.Pending > 0 && s.OldestPendingCheckInSast) {
+                        html += ' &middot; oldest check-in ' + escapeHtml(s.OldestPendingCheckInSast.replace('T', ' '));
+                    }
+                    html += '</div>';
+                    html += '<div><strong class="' + (s.Failed > 0 ? 'offline-warn' : '') + '">' + s.Failed + '</strong> need attention (rejected when syncing &mdash; see the ErrorLog table and the "failed" folder)</div>';
+                    if (s.DatabaseCircuitOpen) {
+                        html += '<div class="offline-warn">The database is currently treated as unreachable &mdash; new check-ins are being queued.</div>';
+                    }
+                    if (s.Pending > 0 && s.LastError) {
+                        html += '<div>Last error: ' + escapeHtml(s.LastError) + '</div>';
+                    }
+                    html += '<div class="offline-folder">Folder: ' + escapeHtml(s.Folder) + '</div>';
+                    el.innerHTML = html;
+                })
+                .catch(function () { el.textContent = 'Could not load the offline queue status.'; });
+        }
+
+        function syncOfflineNow() {
+            var btn = document.getElementById('syncOfflineBtn');
+            var msg = document.getElementById('offlineSyncMessage');
+            btn.disabled = true;
+            btn.textContent = 'Syncing...';
+            msg.textContent = '';
+
+            fetch('@Url.Action("SyncOffline", "Settings")', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: '__RequestVerificationToken=' + encodeURIComponent(getAntiForgeryToken())
+            })
+            .then(function (res) { return res.json(); })
+            .then(function (r) {
+                if (r.Message) {
+                    msg.textContent = r.Message;
+                } else if (r.Skipped) {
+                    msg.textContent = 'A sync is already running - try again in a moment.';
+                } else if (r.StillOffline) {
+                    msg.textContent = 'The database is still unreachable. ' + r.PendingAfter + ' check-in(s) remain queued and will retry automatically.';
+                } else {
+                    msg.textContent = 'Done: ' + r.Synced + ' written, ' + r.AlreadyThere + ' already existed, ' + r.Failed + ' need attention.';
+                }
+                loadOfflineStatus();
+            })
+            .catch(function () { msg.textContent = 'Could not run the sync (network error).'; })
+            .then(function () { btn.disabled = false; btn.textContent = 'Sync now'; });
+        }
+
+        loadOfflineStatus();
+
+        function toggleSidebarPin(e) {
+            e.stopPropagation();
+            var sidebar = document.querySelector('.sidebar');
+            var isPinned = sidebar.classList.toggle('pinned');
+            localStorage.setItem('sidebarPinned', isPinned ? '1' : '0');
+        }
+        (function () {
+            if (localStorage.getItem('sidebarPinned') === '1') {
+                var sb = document.querySelector('.sidebar');
+                if (sb) { sb.classList.add('pinned'); }
+            }
+        })();
+    </script>
+    @Html.AntiForgeryToken()
+</body>
+</html>

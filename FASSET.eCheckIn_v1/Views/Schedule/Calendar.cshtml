@@ -7,8 +7,7 @@
     }
 }
 @{
-    ViewBag.Title = "Schedule Calendar";
-    ViewBag.WideContent = true;
+    Layout = null;
     var monthNames = new[] { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
     var firstOfMonth = new DateTime(Model.Year, Model.Month, 1);
     var daysInMonth = DateTime.DaysInMonth(Model.Year, Model.Month);
@@ -72,582 +71,1235 @@
     scheduleJsonSb.Append("]");
     var scheduleJson = scheduleJsonSb.ToString();
 }
-<style>
-    html, body {
-        overflow-x: hidden;
-        max-width: 100%;
-    }
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>FASSET&reg; - Schedule Calendar</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <style>
+        @@import url('https://fonts.googleapis.com/css?family=Montserrat');
 
-    .cal-wide-container {
-        width: 100%;
-        box-sizing: border-box;
-    }
+        /* ============================================================
+           EVERYTHING FROM HERE TO THE "SCHEDULE CALENDAR CONTENT" MARKER
+           IS THE APP'S SHARED PAGE CHROME - copied verbatim from the
+           current Reports/Index (Reports_v2.cshtml) so this page matches
+           it exactly (sidebar, mobile hamburger toggle, pin button,
+           topnav, ticker). If that page's chrome changes again later,
+           re-sync this block the same way.
+           ============================================================ */
 
-        .cal-wide-container, .cal-wide-container * {
+        .sidebar-pin-btn {
+            background: rgba(255,255,255,0.12);
+            border: none;
+            color: rgba(255,255,255,0.85);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            flex-shrink: 0;
+            margin-left: auto;
+            opacity: 0;
+            transition: opacity 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+        }
+
+        .sidebar:hover .sidebar-pin-btn {
+            opacity: 1;
+        }
+
+        .sidebar-pin-btn:hover {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+        }
+
+        .sidebar-pin-btn svg {
+            width: 18px;
+            height: 18px;
+            display: block;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        /* Pinned = the pin is "pushed in", tilted like a real thumbtack.
+           Unpinned = upright. */
+        .sidebar.pinned .sidebar-pin-btn svg {
+            transform: rotate(45deg);
+        }
+
+        .sidebar-pin-btn:active svg {
+            transform: scale(0.82);
+        }
+
+        .sidebar.pinned .sidebar-pin-btn:active svg {
+            transform: rotate(45deg) scale(0.82);
+        }
+
+        .sidebar.pinned .sidebar-pin-btn {
+            color: #f2b705;
+            opacity: 1;
+        }
+
+        .sidebar.pinned {
+            width: 260px !important;
+        }
+
+            .sidebar.pinned .sidebar-brand-text,
+            .sidebar.pinned .sidebar-section-label {
+                opacity: 1;
+            }
+
+        .main-content {
+            transition: margin-left 0.2s ease;
+        }
+
+        .sidebar.pinned ~ .main-content {
+            margin-left: 260px;
+        }
+
+        * {
             box-sizing: border-box;
         }
 
-    .cal-toolbar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 18px;
-    }
-
-        .cal-toolbar select {
-            padding: 6px 10px;
-            border-radius: 8px;
-            border: 1px solid #cbd5e1;
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+            color: #23303d;
+            background-color: #eef1f6;
         }
 
-    .cal-nav {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .cal-title {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #1E293B;
-        min-width: 170px;
-        text-align: center;
-    }
-
-    .cal-dow-row {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 6px;
-        margin-bottom: 4px;
-    }
-
-    .cal-dow {
-        text-align: center;
-        font-size: 14px;
-        font-weight: 700;
-        color: #64748B;
-        padding: 4px 0;
-    }
-
-    .cal-week-row {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 6px;
-        margin-bottom: 6px;
-    }
-
-    .cal-cell {
-        height: 220px;
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        padding: 10px;
-        background: #fff;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-
-        .cal-cell.empty {
-            background: transparent;
-            border: none;
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 60px;
+            overflow: hidden;
+            white-space: nowrap;
+            background: linear-gradient(180deg, #1b3f6e 0%, #16345c 55%, #12294a 100%);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            transition: transform 0.2s ease, width 0.2s ease;
         }
 
-    .cal-daynum {
-        font-size: 16px;
-        font-weight: 700;
-        color: #334155;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-shrink: 0;
-        margin-bottom: 5px;
-    }
-
-    .cal-daynum-dow {
-        display: none; /* shown only in mobile agenda view */
-        font-size: 12px;
-        font-weight: 600;
-        color: #64748B;
-        margin-right: 6px;
-    }
-
-    .cal-add-link {
-        font-size: 11px;
-        color: #0284C7;
-        text-decoration: none;
-        font-weight: 500;
-    }
-
-    .cal-entry-list {
-        overflow-y: auto;
-        flex: 1;
-    }
-
-        .cal-entry-list::-webkit-scrollbar {
-            width: 5px;
+        @@media (min-width: 993px) {
+            .sidebar:hover {
+                width: 260px;
+            }
         }
 
-        .cal-entry-list::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 26px 14px;
+        }
+
+        .sidebar-logo {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            flex-shrink: 0;
+            object-fit: contain;
+        }
+
+        .sidebar-brand-text {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            opacity: 0;
+            white-space: nowrap;
+            transition: opacity 0.15s ease;
+        }
+
+        .sidebar:hover .sidebar-brand-text {
+            opacity: 1;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.18);
+            margin: 4px 24px 14px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 0 14px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 14px;
             border-radius: 4px;
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            font-size: 12.5px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            transition: background-color 0.15s ease, color 0.15s ease;
         }
 
-    .cal-entry {
-        font-size: 13.5px;
-        line-height: 1.8;
-        padding: 2px 7px;
-        border-radius: 5px;
-        margin-bottom: 3px;
-        text-decoration: none;
-        display: block;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
+            .sidebar-link svg {
+                width: 18px;
+                height: 18px;
+                flex-shrink: 0;
+                opacity: 0.9;
+            }
 
-        .cal-entry.vacant {
-            background: #E0F2FE;
-            color: #0369A1;
+            .sidebar-link:hover {
+                background: rgba(255,255,255,0.1);
+            }
+
+            .sidebar-link.active {
+                background: rgba(255,255,255,0.16);
+                color: #fff;
+            }
+
+        .sidebar-section-label {
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.45);
+            padding: 16px 14px 6px;
+            opacity: 0;
+            white-space: nowrap;
+            transition: opacity 0.15s ease;
         }
 
-        .cal-entry.holiday {
-            background: #FEF9C3;
-            color: #854D0E;
+        .sidebar:hover .sidebar-section-label {
+            opacity: 1;
         }
 
-        .cal-entry.person {
-            background: #F1F5F9;
-            color: #1E293B;
+        .sidebar-section-label:first-child {
+            padding-top: 4px;
         }
 
-    .btn-cal {
-        padding: 6px 12px;
-        border-radius: 8px;
-        border: 1px solid #cbd5e1;
-        background: #fff;
-        color: #334155;
-        text-decoration: none;
-        font-size: 13px;
-    }
-
-    /* View toggle (Month / Day) — desktop only; mobile always forces agenda */
-    .view-toggle {
-        display: flex;
-        gap: 4px;
-        background: #F1F5F9;
-        padding: 3px;
-        border-radius: 10px;
-    }
-
-    .view-toggle-btn {
-        padding: 6px 16px;
-        border-radius: 8px;
-        border: none;
-        background: transparent;
-        color: #64748B;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-    }
-
-        .view-toggle-btn.active {
+        .sidebar-toggle-btn {
+            display: none;
             background: #fff;
-            color: #0F172A;
-            box-shadow: 0 1px 3px rgba(15,23,42,0.15);
-        }
-
-    #agendaView {
-        display: none;
-    }
-
-    #calRoot.mode-agenda #monthView {
-        display: none;
-    }
-
-    #calRoot.mode-agenda #agendaView {
-        display: block;
-    }
-
-    .agenda-view {
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-        margin-top: 6px;
-    }
-
-    .agenda-empty {
-        text-align: center;
-        color: #94A3B8;
-        font-size: 14px;
-        padding: 40px 0;
-    }
-
-    .agenda-day-card {
-        background: #fff;
-        border: 1px solid #E2E8F0;
-        border-radius: 14px;
-        padding: 16px 18px;
-        box-shadow: 0 1px 3px rgba(15,23,42,0.05);
-    }
-
-    .day-nav-card {
-        background: #fff;
-        border: 1px solid #E2E8F0;
-        border-radius: 14px;
-        padding: 16px 18px;
-        box-shadow: 0 1px 3px rgba(15,23,42,0.05);
-    }
-
-    .day-nav-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 14px;
-    }
-
-    .day-nav-title {
-        flex: 1;
-        justify-content: center;
-        margin-bottom: 0;
-        padding-bottom: 0;
-        border-bottom: none;
-    }
-
-    .day-nav-btn {
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        border: 1px solid #cbd5e1;
-        background: #fff;
-        color: #334155;
-        font-size: 20px;
-        line-height: 1;
-        cursor: pointer;
-        flex-shrink: 0;
-    }
-
-        .day-nav-btn:disabled {
-            opacity: 0.35;
-            cursor: not-allowed;
-        }
-
-    .agenda-day-header {
-        display: flex;
-        align-items: baseline;
-        gap: 10px;
-        margin-bottom: 12px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #F1F5F9;
-    }
-
-    .agenda-daynum {
-        font-size: 21px;
-        font-weight: 800;
-        color: #0F172A;
-    }
-
-    .agenda-daymeta {
-        font-size: 13px;
-        color: #94A3B8;
-        font-weight: 600;
-    }
-
-    .agenda-entry {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 12px;
-        border-radius: 10px;
-        background: #F8FAFC;
-        border-left: 4px solid #38BDF8;
-        margin-bottom: 8px;
-        text-decoration: none;
-    }
-
-        .agenda-entry:last-child {
-            margin-bottom: 0;
-        }
-
-        .agenda-entry.vacant {
-            border-left-color: #0EA5E9;
-            background: #F0F9FF;
-        }
-
-        .agenda-entry.holiday {
-            border-left-color: #F59E0B;
-            background: #FFFBEB;
-        }
-
-    .agenda-entry-title {
-        flex: 1;
-        font-size: 14.5px;
-        font-weight: 600;
-        color: #1E293B;
-        overflow-wrap: anywhere;
-        word-break: break-word;
-    }
-
-    .agenda-entry-badge {
-        flex-shrink: 0;
-        font-size: 11.5px;
-        font-weight: 700;
-        color: #fff;
-        background: #0EA5E9;
-        padding: 4px 11px;
-        border-radius: 999px;
-        white-space: nowrap;
-    }
-
-    .agenda-entry.vacant .agenda-entry-badge {
-        background: #64748B;
-    }
-
-    .agenda-entry.holiday .agenda-entry-badge {
-        background: #F59E0B;
-    }
-
-    /* ============================================================
-       MOBILE: below this width the month grid becomes unreadable
-       (7 columns squeeze to slivers). Switch to a vertical agenda:
-       one card per day, stacked top to bottom, entries shown in
-       full instead of truncated. Empty lead-in/trailing cells from
-       the grid are hidden since they carry no information here.
-       ============================================================ */
-    @@media (max-width: 700px) {
-        .cal-toolbar {
+            border: 1px solid #d7dde3;
+            border-radius: 8px;
+            width: 38px;
+            height: 38px;
+            align-items: center;
             justify-content: center;
-            text-align: center;
+            cursor: pointer;
+            margin-right: 14px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 999;
+        }
+
+        @@media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+                .sidebar.open {
+                    transform: translateX(0);
+                    width: 260px;
+                }
+
+            .sidebar-toggle-btn {
+                display: flex;
+            }
+
+            .sidebar-backdrop.show {
+                display: block;
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+            }
+        }
+
+        .main-content {
+            margin-left: 60px;
+        }
+
+        .topnav {
+            background: #fff;
+            padding: 14px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .topnav-left {
+            display: flex;
+            align-items: center;
+        }
+
+        .topnav-title {
+            font-size: 12.5px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #8792a3;
+        }
+
+        .topnav-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .topnav-icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #f2f4f8;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #556;
+            flex-shrink: 0;
+        }
+
+            .topnav-icon-btn:hover {
+                background: #e8ecf2;
+            }
+
+            .topnav-icon-btn svg {
+                width: 16px;
+                height: 16px;
+            }
+
+        .typed-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px 16px;
+            background: #fff;
+            border-bottom: 1px solid #e6ebf1;
+        }
+
+            .typed-section p {
+                font-family: 'Montserrat', sans-serif;
+                font-size: 1.05rem;
+                font-weight: bold;
+                letter-spacing: 0.05rem;
+                text-align: center;
+                color: #1b3f6e;
+                margin: 0;
+                line-height: 1.4;
+                max-width: 100%;
+                overflow-wrap: anywhere;
+            }
+
+                .typed-section p span.typed-text {
+                    font-weight: normal;
+                    color: #ff5449;
+                }
+
+                .typed-section p span.cursor {
+                    display: inline-block;
+                    background-color: #7c8798;
+                    margin-left: 0.1rem;
+                    width: 3px;
+                    animation: tagBlink 1s infinite;
+                }
+
+                    .typed-section p span.cursor.typing {
+                        animation: none;
+                    }
+
+        @@keyframes tagBlink {
+            0% {
+                background-color: #7c8798;
+            }
+
+            49% {
+                background-color: #7c8798;
+            }
+
+            50% {
+                background-color: transparent;
+            }
+
+            99% {
+                background-color: transparent;
+            }
+
+            100% {
+                background-color: #7c8798;
+            }
+        }
+
+        @@media (max-width: 600px) {
+            .typed-section p {
+                font-size: 1.05rem;
+            }
+        }
+
+
+        /* ---- Animated gradient bar spanning the full width of the topnav,
+           sitting right at its bottom edge (replaces the plain gray
+           border-bottom it used to have). Also on Reports/Index.cshtml -
+           keep both in sync if this changes. ---- */
+        .topnav-gradient-line {
+            height: 3px;
+            width: 100%;
+            background: linear-gradient(90deg, #ff5449, #f2b705, #16a3d1, #2e9e4a, #ff5449);
+            background-size: 300% 100%;
+            animation: titleUnderlineShift 4s linear infinite;
+        }
+
+        @@keyframes titleUnderlineShift {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            100% {
+                background-position: 300% 50%;
+            }
+        }
+
+        .page-content-wrap {
+            padding: 24px 30px 30px;
+        }
+
+        @@media (max-width: 700px) {
+            .page-content-wrap {
+                padding: 16px 14px 24px;
+            }
+        }
+
+
+        /* ---- Blue gradient hero, matching Reports/Index's hero-chart-card:
+           full-bleed (breaks out from behind the sidebar), heading sits in
+           it, and the toolbar panel below overlaps it the same way that
+           page's KPI row overlaps its hero. ---- */
+        .hero-wrap {
+            padding: 0 30px;
+        }
+
+        .hero-chart-card {
+            background: linear-gradient(120deg, #0f7fa3, #1b3f6e, #21548f, #14647a, #12294a);
+            background-size: 300% 300%;
+            animation: heroGradientShift 16s ease infinite;
+            border-radius: 0;
+            padding: 24px 30px 60px 300px;
+            margin: 0 -30px 0 -290px;
+            width: calc(100% + 320px);
+            position: relative;
+            overflow: visible;
+            box-shadow: 0 10px 30px rgba(18,41,74,0.28);
+            z-index: 1;
+        }
+
+        @@keyframes heroGradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        @@media (max-width: 992px) {
+            .hero-chart-card {
+                margin: 0 -30px;
+                width: calc(100% + 60px);
+                padding-left: 30px;
+            }
+        }
+
+        .hero-chart-eyebrow {
+            color: rgba(255,255,255,0.6);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .hero-chart-value {
+            color: #fff;
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .cal-toolbar-panel {
+            background: #fff;
+            border-radius: 14px;
+            border: 1px solid #e6ebf1;
+            box-shadow: 0 8px 24px rgba(20,48,79,0.14);
+            padding: 20px 22px;
+            margin-top: -34px;
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ============================================================
+           SCHEDULE CALENDAR CONTENT - unchanged from the existing
+           Calendar view (month grid, day agenda, mobile responsiveness).
+           Only re-housed inside the shared chrome above.
+           ============================================================ */
+        html, body {
+            overflow-x: hidden;
+            max-width: 100%;
+        }
+
+        .cal-wide-container {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+            .cal-wide-container, .cal-wide-container * {
+                box-sizing: border-box;
+            }
+
+        .cal-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+
+            .cal-toolbar select {
+                padding: 6px 10px;
+                border-radius: 8px;
+                border: 1px solid #cbd5e1;
+            }
+
+        .cal-nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .cal-title {
-            min-width: 0;
-        }
-        /* Mobile always shows the agenda list, never the cramped month grid */
-        .view-toggle {
-            display: none;
-        }
-
-        #monthView {
-            display: none !important;
-        }
-
-        #agendaView {
-            display: block !important;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1E293B;
+            min-width: 170px;
+            text-align: center;
         }
 
         .cal-dow-row {
-            display: none;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+
+        .cal-dow {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: #64748B;
+            padding: 4px 0;
         }
 
         .cal-week-row {
-            display: block;
-            grid-template-columns: none;
-            margin-bottom: 0;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            margin-bottom: 6px;
         }
 
         .cal-cell {
-            height: auto;
-            min-height: 0;
-            border-radius: 0;
-            border-left: none;
-            border-right: none;
-            border-top: none;
-            padding: 12px 4px;
-            overflow: visible;
+            height: 220px;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            padding: 10px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
             .cal-cell.empty {
-                display: none;
+                background: transparent;
+                border: none;
             }
 
         .cal-daynum {
-            margin-bottom: 8px;
+            font-size: 16px;
+            font-weight: 700;
+            color: #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            margin-bottom: 5px;
         }
 
         .cal-daynum-dow {
-            display: inline;
+            display: none; /* shown only in mobile agenda view */
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748B;
+            margin-right: 6px;
+        }
+
+        .cal-add-link {
+            font-size: 11px;
+            color: #0284C7;
+            text-decoration: none;
+            font-weight: 500;
         }
 
         .cal-entry-list {
-            overflow-y: visible;
+            overflow-y: auto;
+            flex: 1;
         }
+
+            .cal-entry-list::-webkit-scrollbar {
+                width: 5px;
+            }
+
+            .cal-entry-list::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 4px;
+            }
 
         .cal-entry {
-            white-space: normal;
+            font-size: 13.5px;
+            line-height: 1.8;
+            padding: 2px 7px;
+            border-radius: 5px;
+            margin-bottom: 3px;
+            text-decoration: none;
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+            .cal-entry.vacant {
+                background: #E0F2FE;
+                color: #0369A1;
+            }
+
+            .cal-entry.holiday {
+                background: #FEF9C3;
+                color: #854D0E;
+            }
+
+            .cal-entry.person {
+                background: #F1F5F9;
+                color: #1E293B;
+            }
+
+        .btn-cal {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            color: #334155;
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 4px;
+            background: #F1F5F9;
+            padding: 3px;
+            border-radius: 10px;
+        }
+
+        .view-toggle-btn {
+            padding: 6px 16px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: #64748B;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+            .view-toggle-btn.active {
+                background: #fff;
+                color: #0F172A;
+                box-shadow: 0 1px 3px rgba(15,23,42,0.15);
+            }
+
+        #agendaView {
+            display: none;
+        }
+
+        #calRoot.mode-agenda #monthView {
+            display: none;
+        }
+
+        #calRoot.mode-agenda #agendaView {
+            display: block;
+        }
+
+        .agenda-view {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-top: 6px;
+        }
+
+        .agenda-empty {
+            text-align: center;
+            color: #94A3B8;
+            font-size: 14px;
+            padding: 40px 0;
+        }
+
+        .agenda-day-card {
+            background: #fff;
+            border: 1px solid #E2E8F0;
+            border-radius: 14px;
+            padding: 16px 18px;
+            box-shadow: 0 1px 3px rgba(15,23,42,0.05);
+        }
+
+        .day-nav-card {
+            background: #fff;
+            border: 1px solid #E2E8F0;
+            border-radius: 14px;
+            padding: 16px 18px;
+            box-shadow: 0 1px 3px rgba(15,23,42,0.05);
+        }
+
+        .day-nav-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .day-nav-title {
+            flex: 1;
+            justify-content: center;
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .day-nav-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            color: #334155;
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+            .day-nav-btn:disabled {
+                opacity: 0.35;
+                cursor: not-allowed;
+            }
+
+        .agenda-day-header {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #F1F5F9;
+        }
+
+        .agenda-daynum {
+            font-size: 21px;
+            font-weight: 800;
+            color: #0F172A;
+        }
+
+        .agenda-daymeta {
+            font-size: 13px;
+            color: #94A3B8;
+            font-weight: 600;
+        }
+
+        .agenda-entry {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: #F8FAFC;
+            border-left: 4px solid #38BDF8;
+            margin-bottom: 8px;
+            text-decoration: none;
+        }
+
+            .agenda-entry:last-child {
+                margin-bottom: 0;
+            }
+
+            .agenda-entry.vacant {
+                border-left-color: #0EA5E9;
+                background: #F0F9FF;
+            }
+
+            .agenda-entry.holiday {
+                border-left-color: #F59E0B;
+                background: #FFFBEB;
+            }
+
+        .agenda-entry-title {
+            flex: 1;
+            font-size: 14.5px;
+            font-weight: 600;
+            color: #1E293B;
             overflow-wrap: anywhere;
             word-break: break-word;
-            width: 100%;
-            max-width: 100%;
-            font-size: 14px;
-            line-height: 1.6;
-            padding: 6px 10px;
         }
 
-        .cal-cell, .cal-entry-list, .cal-week-row {
-            width: 100%;
-            max-width: 100%;
+        .agenda-entry-badge {
+            flex-shrink: 0;
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #fff;
+            background: #0EA5E9;
+            padding: 4px 11px;
+            border-radius: 999px;
+            white-space: nowrap;
         }
-    }
-</style>
 
-<div id="calRoot" class="container cal-wide-container">
-    <h2 class="mb-4">Schedule Calendar</h2>
+        .agenda-entry.vacant .agenda-entry-badge {
+            background: #64748B;
+        }
 
-    <div class="cal-toolbar">
-        <form method="get" action="@Url.Action("Calendar", "Schedule")" style="display:flex; gap:10px; align-items:center;">
-            <select name="hostLocation" onchange="this.form.submit()">
-                @foreach (var site in Model.HostLocations)
-                {
-                    <option value="@site" selected="@(site == Model.SelectedHostLocation)">@site</option>
+        .agenda-entry.holiday .agenda-entry-badge {
+            background: #F59E0B;
+        }
+
+        /* ============================================================
+           MOBILE: below this width the month grid becomes unreadable
+           (7 columns squeeze to slivers). Switch to a vertical agenda:
+           one card per day, stacked top to bottom, entries shown in
+           full instead of truncated. Empty lead-in/trailing cells from
+           the grid are hidden since they carry no information here.
+           ============================================================ */
+        @@media (max-width: 700px) {
+            .cal-toolbar {
+                justify-content: center;
+                text-align: center;
+            }
+
+            .cal-title {
+                min-width: 0;
+            }
+
+            .view-toggle {
+                display: none;
+            }
+
+            #monthView {
+                display: none !important;
+            }
+
+            #agendaView {
+                display: block !important;
+            }
+
+            .cal-dow-row {
+                display: none;
+            }
+
+            .cal-week-row {
+                display: block;
+                grid-template-columns: none;
+                margin-bottom: 0;
+            }
+
+            .cal-cell {
+                height: auto;
+                min-height: 0;
+                border-radius: 0;
+                border-left: none;
+                border-right: none;
+                border-top: none;
+                padding: 12px 4px;
+                overflow: visible;
+            }
+
+                .cal-cell.empty {
+                    display: none;
                 }
-            </select>
-            <input type="hidden" name="year" value="@Model.Year" />
-            <input type="hidden" name="month" value="@Model.Month" />
-        </form>
 
-        <div class="cal-nav">
-            <a class="btn-cal" href="@Url.Action("Calendar", "Schedule", new { hostLocation = Model.SelectedHostLocation, year = prevYear, month = prevMonth })">&larr; Prev</a>
-            <div class="cal-title">@monthNames[Model.Month - 1] @Model.Year</div>
-            <a class="btn-cal" href="@Url.Action("Calendar", "Schedule", new { hostLocation = Model.SelectedHostLocation, year = nextYear, month = nextMonth })">Next &rarr;</a>
+            .cal-daynum {
+                margin-bottom: 8px;
+            }
+
+            .cal-daynum-dow {
+                display: inline;
+            }
+
+            .cal-entry-list {
+                overflow-y: visible;
+            }
+
+            .cal-entry {
+                white-space: normal;
+                overflow-wrap: anywhere;
+                word-break: break-word;
+                width: 100%;
+                max-width: 100%;
+                font-size: 14px;
+                line-height: 1.6;
+                padding: 6px 10px;
+            }
+
+            .cal-cell, .cal-entry-list, .cal-week-row {
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <img src="~/Content/Small_Fasset.png" class="sidebar-logo" alt="FASSET" />
+            <div class="sidebar-brand-text">FASSET</div>
+            <button type="button" class="sidebar-pin-btn" onclick="toggleSidebarPin(event)" title="Pin sidebar open">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
+            </button>
         </div>
+        <div class="sidebar-divider"></div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-section-label">Check-In</div>
+            <a href="@Url.Action("Index", "Registration")" class="sidebar-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round" /><circle cx="12" cy="12" r="9" /></svg>
+                Check In
+            </a>
 
-        <div class="view-toggle">
-            <button type="button" id="viewMonthBtn" class="view-toggle-btn active">Month</button>
-            <button type="button" id="viewAgendaBtn" class="view-toggle-btn">Day</button>
-        </div>
+            <div class="sidebar-section-label">Reports</div>
+            <a href="@Url.Action("Index", "Reports")" class="sidebar-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
+                Dashboard
+            </a>
+            <a href="@Url.Action("AttendanceDetail", "Reports")" class="sidebar-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M3 10h18M8 2v4M16 2v4" stroke-linecap="round" /></svg>
+                Attendance Detail
+            </a>
 
-        <button type="button" id="openLoginModalBtn" class="btn-cal" style="background:#38BDF8; color:#0B1220; border-color:#38BDF8; font-weight:700;">
-            Edit
-        </button>
+            <div class="sidebar-section-label">Manage</div>
+            <a href="@Url.Action("Calendar", "Schedule")" class="sidebar-link active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" stroke-linecap="round" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" stroke-linecap="round" /></svg>
+                Schedule
+            </a>
+            <a href="@Url.Action("Index", "Employees")" class="sidebar-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0113 0" stroke-linecap="round" /><path d="M16 4.5a3.5 3.5 0 010 7M22 20a6 6 0 00-4.5-8.7" stroke-linecap="round" /></svg>
+                Employee Management
+            </a>
+            <a href="@Url.Action("Directory", "Employees")" class="sidebar-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87M9 7a4 4 0 118 0 4 4 0 01-8 0z" stroke-linecap="round" stroke-linejoin="round" /><circle cx="9" cy="17" r="4" /></svg>
+                FASSET Employees
+            </a>
+
+            <div class="sidebar-section-label">Fasset Offices</div>
+            @{ var fassetOffices = new[] { "Bank SETA", "FoodBev", "Tehwane South TVET College - Centurion Campus" }; }
+            @foreach (var office in fassetOffices)
+            {
+                <a href="@Url.Action("Office", "Reports", new { name = office })" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.5-7-11a7 7 0 0114 0c0 4.5-7 11-7 11z" stroke-linecap="round" stroke-linejoin="round" /><circle cx="12" cy="10" r="2.5" /></svg>@office</a>
+            }
+
+            <div class="sidebar-section-label">Account</div>
+            <a href="@Url.Action("Index", "Settings")" class="sidebar-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
+                Settings
+            </a>
+            <a href="@Url.Action("CreateAdmin", "Account")" class="sidebar-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke-linecap="round" /><circle cx="12" cy="7" r="4" /></svg>
+                Create Admin
+            </a>
+            <a href="#" class="sidebar-link" onclick="document.getElementById('logOutForm').submit(); return false;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke-linecap="round" stroke-linejoin="round" /><path d="M16 17l5-5-5-5M21 12H9" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                Log Out
+            </a>
+            @using (Html.BeginForm("Logout", "Account", FormMethod.Post, new { id = "logOutForm", style = "display:none;" })) { }
+        </nav>
     </div>
 
-    <div id="monthView">
-        <div class="cal-dow-row">
-            @foreach (var dow in new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" })
-            {
-                <div class="cal-dow">@dow</div>
-            }
+    <div class="main-content">
+        <div class="topnav">
+            <div class="topnav-left">
+                <button type="button" class="sidebar-toggle-btn" onclick="openSidebar()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1b3f6e" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18" stroke-linecap="round" /></svg>
+                </button>
+                <div class="topnav-title">FASSET&reg; CHECK-IN REPORTS <span style="opacity:0.45;">&rsaquo;</span> SCHEDULE</div>
+            </div>
+            <div class="topnav-right">
+                <button type="button" class="topnav-icon-btn" title="Refresh" onclick="location.reload()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0115.3-6.4L21 8M3 12a9 9 0 0015.3 6.4L21 16M21 3v5h-5M3 21v-5h5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </button>
+            </div>
+        </div>
+        <div class="topnav-gradient-line"></div>
+
+        <div class="typed-section">
+            <p>FASSET is <span class="typed-text"></span><span class="cursor">&nbsp;</span></p>
         </div>
 
-        @foreach (var week in weeks)
-        {
-            <div class="cal-week-row">
-                @foreach (var day in week)
-                {
-                    if (day == 0)
-                    {
-                        <div class="cal-cell empty"></div>
-                    }
-                    else
-                    {
-                        var thisDate = new DateTime(Model.Year, Model.Month, day);
-                        List<FASSET.eCheckIn_v1.Models.ScheduleModel> dayEntries;
-                        Model.EntriesByDate.TryGetValue(thisDate, out dayEntries);
+        <div class="hero-wrap">
+            <div class="hero-chart-card">
+                <div class="hero-chart-eyebrow">Schedule</div>
+                <div class="hero-chart-value">Schedule Calendar</div>
+            </div>
+        </div>
 
-                        <div class="cal-cell">
-                            <div class="cal-daynum">
-                                <span><span class="cal-daynum-dow">@thisDate.ToString("ddd")</span>@day</span>
-                                @*<a class="cal-add-link" href="@Url.Action("Edit", "Schedule", new { hostLocation = Model.SelectedHostLocation, year = Model.Year, month = Model.Month, date = thisDate.ToString("yyyy-MM-dd") })">+ add</a>*@
-                            </div>
-                            <div class="cal-entry-list">
-                                @if (dayEntries != null)
+        <div class="page-content-wrap">
+            <div id="calRoot" class="cal-wide-container">
+                <div class="cal-toolbar-panel">
+                    <div class="cal-toolbar">
+                        <form method="get" action="@Url.Action("Calendar", "Schedule")" style="display:flex; gap:10px; align-items:center;">
+                            <select name="hostLocation" onchange="this.form.submit()">
+                                @foreach (var site in Model.HostLocations)
                                 {
-                                    foreach (var entry in dayEntries.OrderBy(e => e.SeatSlot))
-                                    {
-                                        var cssClass = entry.IsPublicHoliday ? "holiday" : (entry.IsVacant ? "vacant" : "person");
-                                        var label = entry.IsPublicHoliday
-                                            ? "Public Holiday"
-                                            : (entry.IsVacant ? ("S" + entry.SeatSlot + ": Vacant") : ("S" + entry.SeatSlot + ": " + entry.EmployeeNameRaw));
-
-                                        <a class="cal-entry @cssClass"
-                                           href="@Url.Action("Edit", "Schedule", new { id = entry.Id, hostLocation = Model.SelectedHostLocation, year = Model.Year, month = Model.Month })"
-                                           title="@label">@label</a>
-                                    }
+                                    <option value="@site" selected="@(site == Model.SelectedHostLocation)">@site</option>
                                 }
-                            </div>
+                            </select>
+                            <input type="hidden" name="year" value="@Model.Year" />
+                            <input type="hidden" name="month" value="@Model.Month" />
+                        </form>
+
+                        <div class="cal-nav">
+                            <a class="btn-cal" href="@Url.Action("Calendar", "Schedule", new { hostLocation = Model.SelectedHostLocation, year = prevYear, month = prevMonth })">&larr; Prev</a>
+                            <div class="cal-title">@monthNames[Model.Month - 1] @Model.Year</div>
+                            <a class="btn-cal" href="@Url.Action("Calendar", "Schedule", new { hostLocation = Model.SelectedHostLocation, year = nextYear, month = nextMonth })">Next &rarr;</a>
+                        </div>
+
+                        <div class="view-toggle">
+                            <button type="button" id="viewMonthBtn" class="view-toggle-btn active">Month</button>
+                            <button type="button" id="viewAgendaBtn" class="view-toggle-btn">Day</button>
+                        </div>
+
+                        <button type="button" id="openLoginModalBtn" class="btn-cal" style="background:#38BDF8; color:#0B1220; border-color:#38BDF8; font-weight:700;">
+                            Edit
+                        </button>
+                    </div>
+                </div>
+
+                <div id="monthView">
+                    <div class="cal-dow-row">
+                        @foreach (var dow in new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" })
+                        {
+                            <div class="cal-dow">@dow</div>
+                        }
+                    </div>
+
+                    @foreach (var week in weeks)
+                    {
+                        <div class="cal-week-row">
+                            @foreach (var day in week)
+                            {
+                                if (day == 0)
+                                {
+                                    <div class="cal-cell empty"></div>
+                                }
+                                else
+                                {
+                                    var thisDate = new DateTime(Model.Year, Model.Month, day);
+                                    List<FASSET.eCheckIn_v1.Models.ScheduleModel> dayEntries;
+                                    Model.EntriesByDate.TryGetValue(thisDate, out dayEntries);
+
+                                    <div class="cal-cell">
+                                        <div class="cal-daynum">
+                                            <span><span class="cal-daynum-dow">@thisDate.ToString("ddd")</span>@day</span>
+                                        </div>
+                                        <div class="cal-entry-list">
+                                            @if (dayEntries != null)
+                                            {
+                                                foreach (var entry in dayEntries.OrderBy(e => e.SeatSlot))
+                                                {
+                                                    var cssClass = entry.IsPublicHoliday ? "holiday" : (entry.IsVacant ? "vacant" : "person");
+                                                    var label = entry.IsPublicHoliday
+                                                        ? "Public Holiday"
+                                                        : (entry.IsVacant ? ("S" + entry.SeatSlot + ": Vacant") : ("S" + entry.SeatSlot + ": " + entry.EmployeeNameRaw));
+
+                                                    <a class="cal-entry @cssClass"
+                                                       href="@Url.Action("Edit", "Schedule", new { id = entry.Id, hostLocation = Model.SelectedHostLocation, year = Model.Year, month = Model.Month })"
+                                                       title="@label">@label</a>
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            }
                         </div>
                     }
-                }
-            </div>
-        }
-    </div>
-
-    <div id="agendaView" class="agenda-view">
-        <div class="day-nav-card">
-            <div class="day-nav-header">
-                <button type="button" id="dayPrevBtn" class="day-nav-btn" aria-label="Previous day">&lsaquo;</button>
-                <div class="agenda-day-header day-nav-title">
-                    <span class="agenda-daynum" id="dayNumLabel"></span>
-                    <span class="agenda-daymeta" id="dayMetaLabel"></span>
                 </div>
-                <button type="button" id="dayNextBtn" class="day-nav-btn" aria-label="Next day">&rsaquo;</button>
+
+                <div id="agendaView" class="agenda-view">
+                    <div class="day-nav-card">
+                        <div class="day-nav-header">
+                            <button type="button" id="dayPrevBtn" class="day-nav-btn" aria-label="Previous day">&lsaquo;</button>
+                            <div class="agenda-day-header day-nav-title">
+                                <span class="agenda-daynum" id="dayNumLabel"></span>
+                                <span class="agenda-daymeta" id="dayMetaLabel"></span>
+                            </div>
+                            <button type="button" id="dayNextBtn" class="day-nav-btn" aria-label="Next day">&rsaquo;</button>
+                        </div>
+                        <div id="dayEntriesWrap"></div>
+                    </div>
+                </div>
             </div>
-            <div id="dayEntriesWrap"></div>
         </div>
     </div>
-</div>
 
-<script id="scheduleDataJson" type="application/json">@Html.Raw(scheduleJson)</script>
+    <script id="scheduleDataJson" type="application/json">@Html.Raw(scheduleJson)</script>
 
-<script>
-    $(function () {
-        // ---- Single-day view (mobile: always; desktop: when "Day" is active) ----
-        var scheduleData = JSON.parse(document.getElementById('scheduleDataJson').textContent);
-        var dayIndex = @defaultDayIndex;
-        if (dayIndex < 0 || dayIndex >= scheduleData.length) { dayIndex = 0; }
-
-        function renderDay(idx) {
-            var d = scheduleData[idx];
-            $('#dayNumLabel').text(d.day);
-            $('#dayMetaLabel').text(d.dow);
-
-            var $wrap = $('#dayEntriesWrap').empty();
-            if (!d.entries.length) {
-                $('<div class="agenda-empty"></div>').text('No schedule entries for this day.').appendTo($wrap);
-            } else {
-                d.entries.forEach(function (e) {
-                    $('<a class="agenda-entry"></a>')
-                        .addClass(e.cls)
-                        .attr('href', e.url)
-                        .append($('<span class="agenda-entry-title"></span>').text(e.title))
-                        .append($('<span class="agenda-entry-badge"></span>').text(e.badge))
-                        .appendTo($wrap);
-                });
-            }
-
-            $('#dayPrevBtn').prop('disabled', idx === 0);
-            $('#dayNextBtn').prop('disabled', idx === scheduleData.length - 1);
+    <script>
+        function openSidebar() {
+            document.getElementById('sidebar').classList.add('open');
+            document.getElementById('sidebarBackdrop').classList.add('show');
+        }
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebarBackdrop').classList.remove('show');
         }
 
-        $('#dayPrevBtn').on('click', function () {
-            if (dayIndex > 0) { dayIndex--; renderDay(dayIndex); }
-        });
+        function toggleSidebarPin(e) {
+            e.stopPropagation();
+            var sidebar = document.querySelector('.sidebar');
+            var isPinned = sidebar.classList.toggle('pinned');
+            localStorage.setItem('sidebarPinned', isPinned ? '1' : '0');
+        }
+        (function () {
+            if (localStorage.getItem('sidebarPinned') === '1') {
+                var sb = document.querySelector('.sidebar');
+                if (sb) { sb.classList.add('pinned'); }
+            }
+        })();
 
-        $('#dayNextBtn').on('click', function () {
-            if (dayIndex < scheduleData.length - 1) { dayIndex++; renderDay(dayIndex); }
-        });
+        const typedTextSpan = document.querySelector(".typed-text");
+        const cursorSpan = document.querySelector(".cursor");
+        const textArray = [
+            "e-CheckIn",
+            "striving for excellence through hard work",
+            "working with honesty and integrity",
+            "making a difference",
+            "valuing people",
+            "innovation"
+        ];
+        const typingDelay = 60;
+        const erasingDelay = 30;
+        const newTextDelay = 2500;
+        let textArrayIndex = 0;
+        let charIndex = 0;
 
-        renderDay(dayIndex);
+        function type() {
+            if (charIndex < textArray[textArrayIndex].length) {
+                if (!cursorSpan.classList.contains("typing")) cursorSpan.classList.add("typing");
+                typedTextSpan.textContent += textArray[textArrayIndex].charAt(charIndex);
+                charIndex++;
+                setTimeout(type, typingDelay);
+            } else {
+                cursorSpan.classList.remove("typing");
+                setTimeout(erase, newTextDelay);
+            }
+        }
 
-        $('#viewMonthBtn').on('click', function () {
-            $('#calRoot').removeClass('mode-agenda');
-            $('#viewMonthBtn').addClass('active');
-            $('#viewAgendaBtn').removeClass('active');
-        });
+        function erase() {
+            if (charIndex > 0) {
+                if (!cursorSpan.classList.contains("typing")) cursorSpan.classList.add("typing");
+                typedTextSpan.textContent = textArray[textArrayIndex].substring(0, charIndex - 1);
+                charIndex--;
+                setTimeout(erase, erasingDelay);
+            } else {
+                cursorSpan.classList.remove("typing");
+                textArrayIndex++;
+                if (textArrayIndex >= textArray.length) textArrayIndex = 0;
+                setTimeout(type, typingDelay + 1100);
+            }
+        }
 
-        $('#viewAgendaBtn').on('click', function () {
-            $('#calRoot').addClass('mode-agenda');
-            $('#viewAgendaBtn').addClass('active');
-            $('#viewMonthBtn').removeClass('active');
-        });
+        if (textArray.length && typedTextSpan && cursorSpan) {
+            setTimeout(type, newTextDelay + 250);
+        }
 
-        // Login is now handled by the shared modal in _Layout.cshtml —
-        // this just opens it with the same return destination Calendar
-        // always used (the drag-and-drop assignment screen).
-        $('#openLoginModalBtn').on('click', function () {
-            window.openFassetLoginModal('@Url.Action("Edit", "Schedule", new { hostLocation = Model.SelectedHostLocation })');
+        $(function () {
+            // ---- Single-day view (mobile: always; desktop: when "Day" is active) ----
+            var scheduleData = JSON.parse(document.getElementById('scheduleDataJson').textContent);
+            var dayIndex = @defaultDayIndex;
+            if (dayIndex < 0 || dayIndex >= scheduleData.length) { dayIndex = 0; }
+
+            function renderDay(idx) {
+                var d = scheduleData[idx];
+                $('#dayNumLabel').text(d.day);
+                $('#dayMetaLabel').text(d.dow);
+
+                var $wrap = $('#dayEntriesWrap').empty();
+                if (!d.entries.length) {
+                    $('<div class="agenda-empty"></div>').text('No schedule entries for this day.').appendTo($wrap);
+                } else {
+                    d.entries.forEach(function (e) {
+                        $('<a class="agenda-entry"></a>')
+                            .addClass(e.cls)
+                            .attr('href', e.url)
+                            .append($('<span class="agenda-entry-title"></span>').text(e.title))
+                            .append($('<span class="agenda-entry-badge"></span>').text(e.badge))
+                            .appendTo($wrap);
+                    });
+                }
+
+                $('#dayPrevBtn').prop('disabled', idx === 0);
+                $('#dayNextBtn').prop('disabled', idx === scheduleData.length - 1);
+            }
+
+            $('#dayPrevBtn').on('click', function () {
+                if (dayIndex > 0) { dayIndex--; renderDay(dayIndex); }
+            });
+
+            $('#dayNextBtn').on('click', function () {
+                if (dayIndex < scheduleData.length - 1) { dayIndex++; renderDay(dayIndex); }
+            });
+
+            renderDay(dayIndex);
+
+            $('#viewMonthBtn').on('click', function () {
+                $('#calRoot').removeClass('mode-agenda');
+                $('#viewMonthBtn').addClass('active');
+                $('#viewAgendaBtn').removeClass('active');
+            });
+
+            $('#viewAgendaBtn').on('click', function () {
+                $('#calRoot').addClass('mode-agenda');
+                $('#viewAgendaBtn').addClass('active');
+                $('#viewMonthBtn').removeClass('active');
+            });
+
+            // Previously opened a shared login modal from _Layout.cshtml -
+            // that layout is not used on this page (self-contained, to
+            // match the app's shared theme), so this navigates directly.
+            // If Schedule/Edit has an [Authorize] attribute, ASP.NET's own
+            // login redirect still protects it.
+            $('#openLoginModalBtn').on('click', function () {
+                window.location.href = '@Url.Action("Edit", "Schedule", new { hostLocation = Model.SelectedHostLocation })';
+            });
         });
-    });
-</script>
+    </script>
+</body>
+</html>
