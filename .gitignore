@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# eCheckIn offline queue/cache (runtime data)
+FASSET.eCheckIn_v1/App_Data/OfflineCheckIns/
