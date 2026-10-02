@@ -46,9 +46,31 @@ namespace FASSET.eCheckIn_v1.Controllers
             return View();
         }
 
-        // GET: Reports/Data?start=...&end=...&department=...&lateAfter=09:00&location=...
+        // GET: Reports/Office?name=FoodBev
+        // One templated view for every configured site (see mst_Sites) -
+        // ViewBag.OfficeName is used both to render the page and as the
+        // "location" filter value sent to Data()/ExportExcel(), which now
+        // match on the nearest configured site's name (see GetNearestSiteName
+        // below) rather than a geocoded street address.
+        public ActionResult Office(string name)
+        {
+            ViewBag.OfficeName = name;
+            return View();
+        }
+
+        // GET: Reports/AttendanceDetail
+        // Standalone page (not a Dashboard tab): the hero + Row 1 KPI
+        // cards, unified with a filterable raw check-in log below. Reuses
+        // the existing Data() endpoint - no new backend logic needed.
+        public ActionResult AttendanceDetail()
+        {
+            ViewBag.Departments = _dbAccess.GetDepartmentNamesForReporting();
+            return View();
+        }
+
+        // GET: Reports/Data?start=...&end=...&department=...&lateAfter=09:00&location=...&locationStatus=...&radiusBand=...
         [HttpGet]
-        public JsonResult Data(string start, string end, string department, string lateAfter, string location)
+        public JsonResult Data(string start, string end, string department, string lateAfter, string location, string locationStatus, string radiusBand)
         {
             DateTime startDate = string.IsNullOrEmpty(start) ? DateTime.Today.AddDays(-30) : DateTime.Parse(start);
             DateTime endDate = string.IsNullOrEmpty(end) ? DateTime.Today : DateTime.Parse(end);
@@ -64,7 +86,62 @@ namespace FASSET.eCheckIn_v1.Controllers
 
             if (!string.IsNullOrWhiteSpace(location))
             {
-                rows = rows.Where(r => ResolvePlaceName(RoundLocation(r.GeoLocation)) == location).ToList();
+                var sitesForFilter = _dbAccess.GetSites();
+                if (location == "OutOfBounds")
+                {
+                    // Not a real site - a sentinel value from the dropdown
+                    // meaning "checked in, but not within ANY configured
+                    // site's radius" (as opposed to matching the nearest
+                    // one regardless of distance, which is what the normal
+                    // site-name filter below does).
+                    rows = rows.Where(r => !IsWithinAnySite(RoundLocation(r.GeoLocation), sitesForFilter)).ToList();
+                }
+                else
+                {
+                    // Match against the nearest CONFIGURED SITE's name (from
+                    // mst_Sites, e.g. "FoodBev", "Bank SETA") rather than the
+                    // full geocoded street address ResolvePlaceName returns -
+                    // "location" here is always one of the site names, never a
+                    // full address, so this is the correct comparison.
+                    rows = rows.Where(r => GetNearestSiteName(RoundLocation(r.GeoLocation), sitesForFilter) == location).ToList();
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(locationStatus))
+            {
+                // Separate from the "location" (site) filter above, and
+                // deliberately uses a HARDCODED 150m radius rather than
+                // each site's own configured RadiusMeters - "Inbound"
+                // always means "within 150m of some configured site",
+                // regardless of what that site's own radius is set to.
+                var sitesForStatusFilter = _dbAccess.GetSites();
+                if (locationStatus == "inbound")
+                {
+                    rows = rows.Where(r => IsWithinFixedRadius(RoundLocation(r.GeoLocation), sitesForStatusFilter, 150)).ToList();
+                }
+                else if (locationStatus == "outbound")
+                {
+                    rows = rows.Where(r => !IsWithinFixedRadius(RoundLocation(r.GeoLocation), sitesForStatusFilter, 150)).ToList();
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(radiusBand))
+            {
+                // Same three bands as the Radius column's color coding:
+                // Normal <=150m, Amber 151-200m, Red >200m. A check-in
+                // with no valid coordinate (distance == null) never
+                // matches any band, so it's excluded from all three -
+                // there's nothing to measure, not a distance of zero.
+                var sitesForRadiusFilter = _dbAccess.GetSites();
+                rows = rows.Where(r =>
+                {
+                    var distance = GetDistanceToNearestSiteMeters(RoundLocation(r.GeoLocation), sitesForRadiusFilter);
+                    if (!distance.HasValue) return false;
+                    if (radiusBand == "normal") return distance.Value <= 150;
+                    if (radiusBand == "amber") return distance.Value > 150 && distance.Value <= 200;
+                    if (radiusBand == "red") return distance.Value > 200;
+                    return true;
+                }).ToList();
             }
 
             // ---- Summary ----
@@ -161,14 +238,42 @@ namespace FASSET.eCheckIn_v1.Controllers
 
             // Per-check-in detail, used by the Late/On-time drill-down modal
             // (View column) to show exactly who was late/on-time, and where.
+            // Fetched here (not further down, where it was previously) so
+            // the Inbound/Outbound classification below can use it too.
+            var sites = _dbAccess.GetSites();
+            // Fast lookup for the "Scheduled" column: was this employee
+            // actually scheduled to be at ANY site on this specific date?
+            // Keyed by "name|yyyy-MM-dd" so it's a simple set membership
+            // check per check-in row, not a per-row DB query.
+            var scheduledLookup = new HashSet<string>(
+                scheduledDays.Select(s => s.EmployeeName + "|" + s.ScheduleDate.Date.ToString("yyyy-MM-dd")));
+
             var checkInDetails = rows
-                .Select(r => new
+                .Select(r =>
                 {
-                    employeeName = r.EmployeeName,
-                    departmentName = r.DepartmentName ?? "Unknown",
-                    location = ResolvePlaceName(RoundLocation(r.GeoLocation)),
-                    time = r.DateCreated.ToString("yyyy-MM-dd HH:mm"),
-                    isLate = r.DateCreated.TimeOfDay > lateThreshold
+                    var roundedLoc = RoundLocation(r.GeoLocation);
+                    var distance = GetDistanceToNearestSiteMeters(roundedLoc, sites);
+                    return new
+                    {
+                        employeeName = r.EmployeeName,
+                        departmentName = r.DepartmentName ?? "Unknown",
+                        location = ResolvePlaceName(roundedLoc),
+                        // Hardcoded 150m radius, same reasoning as the
+                        // locationStatus filter above - independent of each
+                        // site's own configured RadiusMeters.
+                        locationStatus = IsWithinFixedRadius(roundedLoc, sites, 150) ? "Inbound" : "Outbound",
+                        // Distance to the nearest configured site, in
+                        // whole meters - null when there's no valid
+                        // coordinate (e.g. "Unknown / location denied").
+                        distanceMeters = distance.HasValue ? (int?)Math.Round(distance.Value) : null,
+                        // Was this check-in on a day the employee was
+                        // actually scheduled? True/false, not "which site" -
+                        // a mismatch (checked in at a different site than
+                        // scheduled) still counts as scheduled=true here.
+                        wasScheduled = scheduledLookup.Contains(r.EmployeeName + "|" + r.DateCreated.Date.ToString("yyyy-MM-dd")),
+                        time = r.DateCreated.ToString("yyyy-MM-dd HH:mm"),
+                        isLate = r.DateCreated.TimeOfDay > lateThreshold
+                    };
                 })
                 .ToList();
 
@@ -190,6 +295,24 @@ namespace FASSET.eCheckIn_v1.Controllers
             var allEmployeeNames = new HashSet<string>(expectedByEmployee.Keys);
             allEmployeeNames.UnionWith(actualByEmployee.Keys);
 
+            // Each employee's department, taken from their own check-in
+            // rows (already resolved to a real name via GetCheckInReportData's
+            // Departments-table join) - whichever department shows up most
+            // often across their check-ins in this range, same pattern as
+            // ExportExcel's employeeLocations below. An employee who never
+            // checked in at all (scheduled but absent the whole period) has
+            // no check-in row to read a department from, so theirs is null
+            // and the widget shows "-" for them specifically - that's a
+            // real "we don't know", not the previous bug where EVERY row
+            // showed "-" because this field didn't exist at all.
+            var departmentByEmployee = rows
+                .GroupBy(r => r.EmployeeName)
+                .ToDictionary(g => g.Key, g => g
+                    .Select(r => r.DepartmentName ?? "Unknown")
+                    .GroupBy(d => d)
+                    .OrderByDescending(x => x.Count())
+                    .First().Key);
+
             var employeeAttendance = allEmployeeNames
                 .Select(name =>
                 {
@@ -198,12 +321,24 @@ namespace FASSET.eCheckIn_v1.Controllers
                     return new
                     {
                         employeeName = name,
+                        departmentName = departmentByEmployee.ContainsKey(name) ? departmentByEmployee[name] : null,
                         expectedDays = expected,
                         actualDays = actual,
                         ratePercent = expected == 0 ? (double?)null : Math.Round(100.0 * actual / expected, 1)
                     };
                 })
-                .OrderBy(x => x.ratePercent ?? -1) // worst attendance first, unscheduled employees last
+                // Best rate first, within whichever scope the caller asked
+                // for (everyone, when `location` is blank; just that site's
+                // people, when a location was passed) - the "location" tabs
+                // on the dashboard widget re-call this endpoint with a
+                // different `location` value, so the ranking is always
+                // computed within that scope, never across all sites at
+                // once while a single site is selected.
+                // ratePercent==null (never scheduled - "Not scheduled") is
+                // treated as -1, the lowest possible value, so it always
+                // sorts to the very end and is never mistaken for a top
+                // performer.
+                .OrderByDescending(x => x.ratePercent ?? -1)
                 .ToList();
 
             // By location - cluster on rounded GPS coordinates from the real
@@ -211,7 +346,7 @@ namespace FASSET.eCheckIn_v1.Controllers
             // real place name via Google Geocoding (falls back to raw
             // coordinates if no API key is configured yet). "0,0" means the
             // browser's geolocation prompt was denied/unavailable at check-in time.
-            var sites = _dbAccess.GetSites();
+            // (sites was already fetched earlier, above checkInDetails.)
 
             var byLocation = rows
                 .GroupBy(r => RoundLocation(r.GeoLocation))
@@ -274,7 +409,7 @@ namespace FASSET.eCheckIn_v1.Controllers
             }, JsonRequestBehavior.AllowGet);
         }
 
-        // GET: Reports/ExportExcel?start=...&end=...&department=...&lateAfter=09:00&location=...
+        // GET: Reports/ExportExcel?start=...&end=...&department=...&lateAfter=09:00&location=...&locationStatus=...&radiusBand=...
         // Builds the same report as Data() above, but as a real, native
         // .xlsx workbook via EPPlus (already used elsewhere in this
         // solution for the schedule calendar import) - which, unlike the
@@ -286,8 +421,17 @@ namespace FASSET.eCheckIn_v1.Controllers
         // JSON shape can't silently break this export (or vice versa). If
         // you change how a number is calculated in Data(), make the same
         // change here.
+        //
+        // NOTE: the "Check-Ins & Attendance" sheet's employee ordering is
+        // intentionally kept as its own separate call (see
+        // BuildCombinedCheckInSheet below) rather than best-rate-first,
+        // since a printed/exported workbook reads better sorted
+        // alphabetically by employee than by rate - unlike the live
+        // dashboard widget, which is specifically a "who's doing well"
+        // view. If you want the exported sheet to match the dashboard's
+        // best-first ordering too, say so and this note goes away.
         [HttpGet]
-        public FileResult ExportExcel(string start, string end, string department, string lateAfter, string location)
+        public FileResult ExportExcel(string start, string end, string department, string lateAfter, string location, string locationStatus, string radiusBand)
         {
             DateTime startDate = string.IsNullOrEmpty(start) ? DateTime.Today.AddDays(-30) : DateTime.Parse(start);
             DateTime endDate = string.IsNullOrEmpty(end) ? DateTime.Today : DateTime.Parse(end);
@@ -301,13 +445,50 @@ namespace FASSET.eCheckIn_v1.Controllers
             }
 
             List<CheckInReportRow> rows = _dbAccess.GetCheckInReportData(startDate, endDate, dept);
+            var sites = _dbAccess.GetSites();
             if (locationFilter != null)
             {
-                rows = rows.Where(r => ResolvePlaceName(RoundLocation(r.GeoLocation)) == locationFilter).ToList();
+                if (locationFilter == "OutOfBounds")
+                {
+                    rows = rows.Where(r => !IsWithinAnySite(RoundLocation(r.GeoLocation), sites)).ToList();
+                }
+                else
+                {
+                    // Same fix as Data(): match the nearest configured site's
+                    // name, not the full geocoded address.
+                    rows = rows.Where(r => GetNearestSiteName(RoundLocation(r.GeoLocation), sites) == locationFilter).ToList();
+                }
+            }
+
+            // Same two filters as Data() - kept in sync so an exported
+            // workbook always matches whatever's currently on screen when
+            // the person clicks Export, not just the date/department/site.
+            if (!string.IsNullOrWhiteSpace(locationStatus))
+            {
+                if (locationStatus == "inbound")
+                {
+                    rows = rows.Where(r => IsWithinFixedRadius(RoundLocation(r.GeoLocation), sites, 150)).ToList();
+                }
+                else if (locationStatus == "outbound")
+                {
+                    rows = rows.Where(r => !IsWithinFixedRadius(RoundLocation(r.GeoLocation), sites, 150)).ToList();
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(radiusBand))
+            {
+                rows = rows.Where(r =>
+                {
+                    var distance = GetDistanceToNearestSiteMeters(RoundLocation(r.GeoLocation), sites);
+                    if (!distance.HasValue) return false;
+                    if (radiusBand == "normal") return distance.Value <= 150;
+                    if (radiusBand == "amber") return distance.Value > 150 && distance.Value <= 200;
+                    if (radiusBand == "red") return distance.Value > 200;
+                    return true;
+                }).ToList();
             }
 
             var scheduledDays = _dbAccess.GetScheduledDays(startDate, endDate.Date.AddDays(1), dept);
-            var sites = _dbAccess.GetSites();
             var headcounts = _dbAccess.GetEmployeeHeadcountByDepartment();
 
             // Overview's new "Expected/Planned Check-ins" KPI card and the
@@ -1362,6 +1543,100 @@ namespace FASSET.eCheckIn_v1.Controllers
                        Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
             double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
             return earthRadiusMeters * c;
+        }
+
+        // Same distance check as IsWithinAnySite, but with an explicit
+        // radius parameter instead of using each site's own configured
+        // RadiusMeters - used for the Inbound/Outbound classification,
+        // which is deliberately fixed at 150m regardless of how any
+        // individual site's radius is configured.
+        private static bool IsWithinFixedRadius(string roundedCoordinateKey, List<SiteInfo> sites, double radiusMeters)
+        {
+            if (roundedCoordinateKey == "Unknown / location denied" || sites == null || sites.Count == 0)
+            {
+                return false;
+            }
+
+            var parts = roundedCoordinateKey.Split(',');
+            double lat, lng;
+            if (parts.Length != 2 ||
+                !double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out lat) ||
+                !double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out lng))
+            {
+                return false;
+            }
+
+            foreach (var site in sites)
+            {
+                double distance = HaversineDistanceMeters(lat, lng, site.Latitude, site.Longitude);
+                if (distance <= radiusMeters)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // True only if the check-in falls WITHIN some configured site's
+        // radius - unlike GetNearestSiteName, which always returns the
+        // closest site regardless of distance. Used by the "Out of
+        // Bounds" location filter option.
+        private static bool IsWithinAnySite(string roundedCoordinateKey, List<SiteInfo> sites)
+        {
+            if (roundedCoordinateKey == "Unknown / location denied" || sites == null || sites.Count == 0)
+            {
+                return false;
+            }
+
+            var parts = roundedCoordinateKey.Split(',');
+            double lat, lng;
+            if (parts.Length != 2 ||
+                !double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out lat) ||
+                !double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out lng))
+            {
+                return false;
+            }
+
+            foreach (var site in sites)
+            {
+                double distance = HaversineDistanceMeters(lat, lng, site.Latitude, site.Longitude);
+                if (distance <= site.RadiusMeters)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Distance in meters from a check-in to the NEAREST configured
+        // site (regardless of whether it's within that site's radius).
+        // Returns null when there's no valid coordinate to measure from.
+        private static double? GetDistanceToNearestSiteMeters(string roundedCoordinateKey, List<SiteInfo> sites)
+        {
+            if (roundedCoordinateKey == "Unknown / location denied" || sites == null || sites.Count == 0)
+            {
+                return null;
+            }
+
+            var parts = roundedCoordinateKey.Split(',');
+            double lat, lng;
+            if (parts.Length != 2 ||
+                !double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out lat) ||
+                !double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out lng))
+            {
+                return null;
+            }
+
+            double nearestDistance = double.MaxValue;
+            foreach (var site in sites)
+            {
+                double distance = HaversineDistanceMeters(lat, lng, site.Latitude, site.Longitude);
+                if (distance < nearestDistance)
+                {
+                    nearestDistance = distance;
+                }
+            }
+            return nearestDistance;
         }
 
         // Classifies a rounded "lat, lng" location key against the

@@ -2,7 +2,7 @@
 
 @{
     Layout = "~/Views/Shared/_LayoutBare.cshtml";
-    ViewBag.Title = "eCheck-In Form";
+    ViewBag.Title = "";
 
     var departmentsList = ViewBag.Departments as List<FASSET.eCheckIn_v1.Models.Department>;
     var employeesList = ViewBag.Employees as List<FASSET.eCheckIn_v1.Models.Employee>;
@@ -322,19 +322,18 @@
             padding: 10px 12px 4px;
         }
 
-        .typed-section p {
-            font-size: 1.15rem;
-        }
+            .typed-section p {
+                font-size: 1.15rem;
+            }
 
         .content {
             margin-top: 6px;
         }
-
         /* Crop the tall banner image down to a short strip instead of
            shrinking its width — keeps it full-bleed but much shorter. */
         .cld-responsive {
-            max-height: 90px;
-            object-fit: cover;
+/*            max-height: 90px;
+*/            object-fit: cover;
             object-position: center 30%;
         }
 
@@ -418,13 +417,6 @@
                     <label class="label-employee" for="employee"><span class="content-employee">EMPLOYEE</span></label>
                     <datalist id="employees">
                         <option value="">Select an Employee</option>
-                        @if (employeesList != null)
-                        {
-                            foreach (var employee in employeesList.Take(5))
-                            {
-                                <option value="@employee.EmployeeName">@employee.EmployeeName</option>
-                            }
-                        }
                     </datalist>
                 </div>
 
@@ -454,10 +446,48 @@
 
 <script>
     $(document).ready(function () {
+        // A message shown here comes from the PREVIOUS submission attempt
+        // and is server-rendered - nothing hides it automatically once the
+        // person starts a fresh try. Hide it as soon as they interact with
+        // anything on the form again, rather than leaving a stale error
+        // sitting there while they're composing a new attempt.
+        $('#department, #employee').on('input focus', function () {
+            $('.alert').fadeOut(200);
+        });
+        $('#pinMeButton').on('click', function () {
+            $('.alert').fadeOut(200);
+        });
+
+        function autoShrinkFont(input, maxFontSize, minFontSize) {
+            input.style.fontSize = maxFontSize + 'px';
+            while (input.scrollWidth > input.clientWidth && parseFloat(input.style.fontSize) > minFontSize) {
+                input.style.fontSize = (parseFloat(input.style.fontSize) - 1) + 'px';
+            }
+        }
+
+        $('#department, #employee').on('input change', function () {
+            autoShrinkFont(this, 16, 14);
+        });
+        // Debounce both autocomplete calls (250ms after typing stops)
+        // instead of firing an AJAX request on every single keystroke -
+        // a fast typer could previously queue a dozen overlapping
+        // requests that raced each other, which is what was making this
+        // feel slow (not the query itself). Also cancels any still-
+        // in-flight request before starting a new one, so an old, slower
+        // response can never overwrite a newer one that already returned.
+        var departmentSearchTimer = null;
+        var departmentSearchXhr = null;
+        var employeeSearchTimer = null;
+        var employeeSearchXhr = null;
+
         $('#department').on('input', function () {
             var inputVal = $(this).val();
-            if (inputVal.length > 0) {
-                $.ajax({
+            clearTimeout(departmentSearchTimer);
+            if (inputVal.length === 0) return;
+
+            departmentSearchTimer = setTimeout(function () {
+                if (departmentSearchXhr) { departmentSearchXhr.abort(); }
+                departmentSearchXhr = $.ajax({
                     url: '@Url.Action("GetDepartments", "Registration")',
                     type: 'GET',
                     data: { term: inputVal },
@@ -470,29 +500,48 @@
                         });
                     }
                 });
-            }
+            }, 250);
         });
+
+        // Shared by both: refreshes the Employee datalist for whatever's
+        // currently in the Department field, plus an optional search term.
+        function refreshEmployeeList(term) {
+            if (employeeSearchXhr) { employeeSearchXhr.abort(); }
+            employeeSearchXhr = $.ajax({
+                url: '@Url.Action("GetEmployees", "Registration")',
+                type: 'GET',
+                data: { term: term || '', department: $('#department').val() },
+                success: function (data) {
+                    var employeeList = $('#employees');
+                    employeeList.empty();
+                    employeeList.append('<option value="">Select an Employee</option>');
+                    $.each(data, function (index, employee) {
+                        employeeList.append('<option value="' + employee.EmployeeName + '">' + employee.EmployeeName + '</option>');
+                    });
+                }
+            });
+        }
 
         $('#employee').on('input', function () {
             var inputVal = $(this).val();
-            if (inputVal.length > 0) {
-                $.ajax({
-                    url: '@Url.Action("GetEmployees", "Registration")',
-                    type: 'GET',
-                    data: { term: inputVal },
-                    success: function (data) {
-                        var employeeList = $('#employees');
-                        employeeList.empty();
-                        employeeList.append('<option value="">Select an Employee</option>');
-                        $.each(data, function (index, employee) {
-                            employeeList.append('<option value="' + employee.EmployeeName + '">' + employee.EmployeeName + '</option>');
-                        });
-                    }
-                });
-            }
+            clearTimeout(employeeSearchTimer);
+            if (inputVal.length === 0) return;
+
+            employeeSearchTimer = setTimeout(function () {
+                // Sends the currently-selected Department along with the
+                // search term, so the Employee list only shows people who
+                // actually belong to that department instead of everyone.
+                refreshEmployeeList(inputVal);
+            }, 250);
         });
 
         $('#department').on('change', function () {
+            // Refresh the Employee list for the newly-picked department
+            // RIGHT AWAY, rather than waiting until the person also types
+            // into the Employee field - otherwise clicking straight into
+            // Employee still showed a stale, unfiltered list until the
+            // first keystroke replaced it.
+            refreshEmployeeList('');
             $('#employee').focus();
         });
 
@@ -598,8 +647,8 @@
     const cursorSpan = document.querySelector(".cursor");
     const textArray = [
         "e-CheckIn",
-        "striving for excellence through hard work",
-        "working with honesty and integrity",
+        "striving for excellence",
+        "honesty and integrity",
         "making a difference",
         "valuing people",
         "innovation"

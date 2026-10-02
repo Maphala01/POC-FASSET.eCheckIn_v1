@@ -1,4 +1,5 @@
 using FASSET.eCheckIn_v1.Models;
+using FASSET.eCheckIn_v1.Services;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -9,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
+using System.Web.Services.Description;
 
 
 namespace FASSET.eCheckIn_v1.Data_Access_Layer
@@ -19,7 +21,8 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
         SqlConnection sql_conn = new SqlConnection(ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString);
         public dal()
         {
-            _connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
+            _connectionString = OfflineCheckInQueue.CapConnectTimeout(
+                ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString, 8);
         }
 
         public int SaveRegistration(RegistrationModel model)
@@ -32,14 +35,14 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             return SaveRegistration(model.Employee, model.Department, model.qrCodeImgUrl, model.QRCodeTotp, model.GeoLocation, "CheckInEmployee", "Manual_Registration");
         }
 
-        private int SaveRegistration(string name, string department, string qrCodeImageUrl, string totp, string geoLocation, string trnsNm, string regType)
+        private int SaveRegistrationCore(string name, string department, string qrCodeImageUrl, string totp, string geoLocation, string trnsNm, string regType)
         {
 
             string empName = name;
             string empDepartment = department;
             string empQrCodeImageUrl = qrCodeImageUrl;
             string empGeoLocation = geoLocation;
-            string empTOTP = "NULL";
+            //string empTOTP = "NULL";
 
             // South Africa has no daylight saving, so UTC+2 is always
             // correct - this is used both for the duplicate-check-in
@@ -143,6 +146,153 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
         }
 
 
+        // Returned by SaveRegistration when the database was unreachable and the
+        // check-in was saved to the offline queue instead (99 = written, 0/-1/-2/-3 = existing codes).
+        public const int OfflineQueuedCode = 100;
+
+        // Wrapper around the original logic. Normal behaviour is unchanged; only a
+        // database-connectivity failure diverts the check-in to the offline queue.
+        private int SaveRegistration(string name, string department, string qrCodeImageUrl, string totp, string geoLocation, string trnsNm, string regType)
+        {
+            // The time the person actually pressed Check In - this is what gets
+            // written to dateCreated later, not the time of the replay.
+            DateTime attemptedAt = OfflineCheckInQueue.SastNow();
+            string reason = "unknown";
+
+            if (OfflineCheckInQueue.IsCircuitOpen)
+            {
+                reason = "Database was unreachable moments ago - queued without retrying.";
+            }
+            else
+            {
+                try
+                {
+                    int result = SaveRegistrationCore(name, department, qrCodeImageUrl, totp, geoLocation, trnsNm, regType);
+                    OfflineCheckInQueue.CloseCircuit();
+                    return result;
+                }
+                catch (Exception ex) when (OfflineCheckInQueue.IsConnectivityFailure(ex))
+                {
+                    OfflineCheckInQueue.OpenCircuit();
+                    reason = ex.Message;
+                }
+            }
+
+            var item = new OfflineCheckIn
+            {
+                Employee = name,
+                Department = department,
+                QrCodeImageUrl = qrCodeImageUrl,
+                QrCodeTotp = totp,
+                GeoLocation = geoLocation,
+                RegistrationType = regType,
+                TransactionName = trnsNm,
+                CheckInTimeSast = OfflineCheckIn.Format(attemptedAt)
+            };
+
+            if (OfflineCheckInQueue.TryEnqueue(item, reason))
+            {
+                OfflineSyncService.EnsureRunning();
+                return OfflineQueuedCode;
+            }
+
+            // Couldn't even write to disk: never claim it was recorded.
+            throw new InvalidOperationException("The database is unreachable and the offline queue could not be written: " + reason);
+        }
+
+        // Writes one queued check-in into the database through the SAME stored
+        // procedure as a live check-in, passing the ORIGINAL check-in time so the
+        // procedure uses it for both the row's dateCreated and its own
+        // "already checked in that day" test (both otherwise use GETDATE(), which
+        // would stamp a replayed row with today's date and wrongly reject
+        // yesterday's item if the person has since checked in today).
+        //
+        // REQUIRES the mst_spCheckInEmployee change (new optional @CheckInTime
+        // parameter) - see the two-line ALTER PROCEDURE edit in the notes.
+        //
+        // Returns 99 = written; 0 = already checked in that day (alreadyExisted is
+        // true when this C# guard caught it before calling the procedure); anything
+        // else is the procedure's own code (-1 department not found, -2 user not
+        // found, -3 insert failed). Throws on connectivity failure (caller leaves the
+        // item queued) and throws OfflineSyncSetupException if the procedure hasn't
+        // been updated yet (caller leaves everything queued).
+        public int ReplayOfflineCheckIn(OfflineCheckIn item, out bool alreadyExisted)
+        {
+            alreadyExisted = false;
+            DateTime checkInTime = item.GetCheckInTime();
+
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+
+                int? employeeId = ResolveEmployeeIdByName(item.Employee);
+                if (employeeId.HasValue)
+                {
+                    var dupCheckCmd = new SqlCommand(
+                        "SELECT COUNT(1) FROM [dbo].[mst_dailyCheckIn_tbl] WHERE Name = @EmployeeId AND CAST(dateCreated AS DATE) = @Day",
+                        connection);
+                    dupCheckCmd.Parameters.AddWithValue("@EmployeeId", employeeId.Value);
+                    dupCheckCmd.Parameters.AddWithValue("@Day", checkInTime.Date);
+
+                    if (Convert.ToInt32(dupCheckCmd.ExecuteScalar()) > 0)
+                    {
+                        alreadyExisted = true;
+                        return 0;
+                    }
+                }
+
+                SqlCommand sql_cmd = new SqlCommand("mst_spCheckInEmployee", connection);
+                sql_cmd.CommandType = CommandType.StoredProcedure;
+                sql_cmd.Parameters.AddWithValue("@Name", item.Employee);
+                sql_cmd.Parameters.AddWithValue("@Department", item.Department);
+                sql_cmd.Parameters.AddWithValue("@QRCodeImageUrl", item.QrCodeImageUrl);
+                sql_cmd.Parameters.AddWithValue("@RegistrationType", item.RegistrationType);
+                sql_cmd.Parameters.AddWithValue("@TrnsNm", item.TransactionName);
+                sql_cmd.Parameters.AddWithValue("@GeoLocation", item.GeoLocation);
+                sql_cmd.Parameters.Add("@CheckInTime", SqlDbType.DateTime).Value = checkInTime;
+                SqlParameter outputParam = new SqlParameter("@IsVld", SqlDbType.Int) { Direction = ParameterDirection.Output };
+                sql_cmd.Parameters.Add(outputParam);
+
+                try
+                {
+                    sql_cmd.ExecuteNonQuery();
+                }
+                catch (SqlException ex) when (ex.Number == 8144 || ex.Number == 8145)
+                {
+                    // 8145 = "@CheckInTime is not a parameter for procedure ...", 8144 = too many arguments.
+                    throw new OfflineSyncSetupException(
+                        "mst_spCheckInEmployee has not been updated to accept @CheckInTime yet - run the ALTER PROCEDURE change, then sync again. Queued check-ins are safe and untouched.");
+                }
+
+                return Convert.ToInt32(outputParam.Value);
+            }
+        }
+
+        // Active employees with their (resolved) department name - feeds the offline
+        // snapshot used by the check-in form's autocomplete.
+        public List<KeyValuePair<string, string>> GetActiveEmployeesWithDepartment()
+        {
+            var result = new List<KeyValuePair<string, string>>();
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    @"SELECT e.Name, COALESCE(d.DepartmentName, e.DepartmentName) AS DepartmentName
+                      FROM [dbo].[Employees] e
+                      LEFT JOIN [dbo].[Departments] d ON TRY_CAST(e.DepartmentName AS INT) = d.Id
+                      WHERE e.IsActive = 1
+                      ORDER BY e.Name ASC",
+                    connection);
+
+                connection.Open();
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    result.Add(new KeyValuePair<string, string>(reader["Name"].ToString(), reader["DepartmentName"] as string));
+                }
+            }
+            return result;
+        }
+
         // NOTE: intentionally NOT filtered to IsActive=1 - this feeds
         // schedule-vs-actual reporting math (expected days, By Month's
         // Planned Seat-Days, etc.) for a specific historical date range.
@@ -204,15 +354,13 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             return locations;
         }
 
-
         public List<SiteInfo> GetSites()
         {
             var sites = new List<SiteInfo>();
-
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 var command = new SqlCommand(
-                    "SELECT SiteName, Latitude, Longitude, RadiusMeters FROM [dbo].[mst_Sites]",
+                    "SELECT Id, SiteName, Latitude, Longitude, RadiusMeters FROM [dbo].[mst_Sites]",
                     connection);
 
                 connection.Open();
@@ -221,6 +369,7 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
                 {
                     sites.Add(new SiteInfo
                     {
+                        Id = Convert.ToInt32(reader["Id"]),
                         SiteName = reader["SiteName"].ToString(),
                         Latitude = Convert.ToDouble(reader["Latitude"]),
                         Longitude = Convert.ToDouble(reader["Longitude"]),
@@ -228,7 +377,6 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
                     });
                 }
             }
-
             return sites;
         }
 
@@ -267,7 +415,7 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
                 return res;
             }
         }
-  
+
         public List<Title> GetTitle()
         {
             using (SqlConnection connection = new SqlConnection(_connectionString))
@@ -326,6 +474,13 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
         // check-in report data for a specific date range. An employee who
         // has since gone inactive still genuinely checked in on those past
         // dates, and that shouldn't disappear from the report.
+        //
+        // NOTE: some Employees.DepartmentName values are actually
+        // Departments.Id stored as literal text (a data-entry artifact from
+        // an earlier import), not the department name itself - e.g. "6"
+        // instead of "Facilities". The LEFT JOIN + COALESCE below resolves
+        // those to the real name via the Departments table, while leaving
+        // already-correct text values (e.g. "Finance") untouched.
         public List<CheckInReportRow> GetCheckInReportData(DateTime startDate, DateTime endDate, string department)
         {
             var rows = new List<CheckInReportRow>();
@@ -337,7 +492,7 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
                         c.Id,
                         c.dateCreated,
                         e.Name AS EmployeeName,
-                        e.DepartmentName,
+                        COALESCE(d.DepartmentName, e.DepartmentName) AS DepartmentName,
                         e.Gender,
                         e.Ethnicity,
                         e.Occupational_Level,
@@ -345,9 +500,10 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
                         c.GeoLocation
                     FROM [dbo].[mst_dailyCheckIn_tbl] c
                     JOIN [dbo].[Employees] e ON c.Name = e.Id
+                    LEFT JOIN [dbo].[Departments] d ON TRY_CAST(e.DepartmentName AS INT) = d.Id
                     WHERE c.dateCreated >= @StartDate
                       AND c.dateCreated < @EndDateExclusive
-                      AND (@Department IS NULL OR e.DepartmentName = @Department)
+                      AND (@Department IS NULL OR COALESCE(d.DepartmentName, e.DepartmentName) = @Department)
                     ORDER BY c.dateCreated ASC;";
 
                 var command = new SqlCommand(sql, connection);
@@ -374,14 +530,17 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
                         GeoLocation = reader["GeoLocation"] as string
                     });
                 }
+
             }
 
             return rows;
         }
 
         // Distinct department names for the report's filter dropdown —
-        // pulled from Employees (not the Departments table) since that's
-        // what GetCheckInReportData actually groups/filters on.
+        // resolved via the same Departments-table join as
+        // GetCheckInReportData, so the dropdown shows real names ("PQA")
+        // instead of raw numeric codes ("10") for employees whose
+        // DepartmentName column stores a Departments.Id instead of text.
         // NOTE: intentionally NOT filtered to IsActive=1 - if an inactive
         // employee's department has real historical check-in data, that
         // department should still be selectable in the report's filter.
@@ -392,7 +551,11 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 var command = new SqlCommand(
-                    "SELECT DISTINCT DepartmentName FROM [dbo].[Employees] WHERE DepartmentName IS NOT NULL ORDER BY DepartmentName ASC",
+                    @"SELECT DISTINCT COALESCE(d.DepartmentName, e.DepartmentName) AS DepartmentName
+                      FROM [dbo].[Employees] e
+                      LEFT JOIN [dbo].[Departments] d ON TRY_CAST(e.DepartmentName AS INT) = d.Id
+                      WHERE e.DepartmentName IS NOT NULL
+                      ORDER BY DepartmentName ASC",
                     connection);
 
                 connection.Open();
@@ -491,6 +654,11 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
         // Filtered to IsActive=1: this headcount is the denominator for
         // "Attendance Rate by Department" in the reports - someone marked
         // inactive shouldn't keep dragging that rate down forever.
+        // Also resolves numeric DepartmentName codes via the Departments
+        // table (same fix as GetCheckInReportData/GetDepartmentNamesForReporting)
+        // - without this, headcount would be split into a separate,
+        // wrongly-named bucket for anyone whose DepartmentName is a raw
+        // code, silently undercounting the real department's headcount.
         public Dictionary<string, int> GetEmployeeHeadcountByDepartment()
         {
             var result = new Dictionary<string, int>();
@@ -498,10 +666,11 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 var command = new SqlCommand(
-                    @"SELECT DepartmentName, COUNT(*) AS Headcount
-                      FROM [dbo].[Employees]
-                      WHERE DepartmentName IS NOT NULL AND IsActive = 1
-                      GROUP BY DepartmentName",
+                    @"SELECT COALESCE(d.DepartmentName, e.DepartmentName) AS DepartmentName, COUNT(*) AS Headcount
+                      FROM [dbo].[Employees] e
+                      LEFT JOIN [dbo].[Departments] d ON TRY_CAST(e.DepartmentName AS INT) = d.Id
+                      WHERE e.DepartmentName IS NOT NULL AND e.IsActive = 1
+                      GROUP BY COALESCE(d.DepartmentName, e.DepartmentName)",
                     connection);
 
                 connection.Open();
@@ -557,72 +726,85 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             }
         }
 
-        public List<Employee> GetEmployeesByTerm(string term)
+        // Filters by department when one is provided (the Registration
+        // form's Employee autocomplete previously ignored department
+        // entirely, showing every active employee regardless of what was
+        // typed in the Department field). Uses the same Departments-table
+        // resolution as the reports, since some Employees.DepartmentName
+        // values store a raw numeric code instead of the department name.
+        public List<Employee> GetEmployeesByTerm(string term, string department = null)
         {
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
-                var command = new SqlCommand("SELECT Name FROM Employees WHERE Name LIKE @term AND IsActive = 1 ORDER BY Name ASC", connection);
+                string sql = @"
+            SELECT TOP 5 e.Name
+            FROM [dbo].[Employees] e
+            LEFT JOIN [dbo].[Departments] d ON TRY_CAST(e.DepartmentName AS INT) = d.Id
+            WHERE e.Name LIKE @term
+              AND e.IsActive = 1
+              AND (@Department IS NULL OR @Department = '' OR COALESCE(d.DepartmentName, e.DepartmentName) = @Department)
+            ORDER BY e.Name ASC";
+                var command = new SqlCommand(sql, connection);
                 command.Parameters.AddWithValue("@term", "%" + term + "%");
+                command.Parameters.AddWithValue("@Department", (object)department ?? DBNull.Value);
                 var reader = command.ExecuteReader();
 
                 var employees = new List<Employee>();
-
                 while (reader.Read())
                 {
                     employees.Add(new Employee { EmployeeName = reader["Name"].ToString() });
                 }
-
                 return employees;
             }
         }
 
         public int BulkInsertSchedules(List<ScheduleModel> rows)
         {
-                var table = new DataTable();
-                table.Columns.Add("HostLocation", typeof(string));
-                table.Columns.Add("EmployeeId", typeof(int));
-                table.Columns.Add("EmployeeNameRaw", typeof(string));
-                table.Columns.Add("ScheduleDate", typeof(DateTime));
-                table.Columns.Add("SeatSlot", typeof(int));
-                table.Columns.Add("IsVacant", typeof(bool));
-                table.Columns.Add("IsPublicHoliday", typeof(bool));
-                table.Columns.Add("CreatedBy", typeof(string));
-        
-                foreach (var r in rows)
-                {
-                    var dr = table.NewRow();
-                    dr["HostLocation"] = r.HostLocation;
-                    dr["EmployeeId"] = (object)r.EmployeeId ?? DBNull.Value;
-                    dr["EmployeeNameRaw"] = r.EmployeeNameRaw ?? "";
-                    dr["ScheduleDate"] = r.ScheduleDate;
-                    dr["SeatSlot"] = (object)r.SeatSlot ?? DBNull.Value;
-                    dr["IsVacant"] = r.IsVacant;
-                    dr["IsPublicHoliday"] = r.IsPublicHoliday;
-                    dr["CreatedBy"] = r.CreatedBy ?? "Import";
-                    table.Rows.Add(dr);
-                }
-        
-                using (SqlConnection connection = new SqlConnection(_connectionString))
-                {
-                    connection.Open();
-                    using (var bulkCopy = new SqlBulkCopy(connection))
-                    {
-                        bulkCopy.DestinationTableName = "dbo.Schedules";
-                        bulkCopy.ColumnMappings.Add("HostLocation", "HostLocation");
-                        bulkCopy.ColumnMappings.Add("EmployeeId", "EmployeeId");
-                        bulkCopy.ColumnMappings.Add("EmployeeNameRaw", "EmployeeNameRaw");
-                        bulkCopy.ColumnMappings.Add("ScheduleDate", "ScheduleDate");
-                        bulkCopy.ColumnMappings.Add("SeatSlot", "SeatSlot");
-                        bulkCopy.ColumnMappings.Add("IsVacant", "IsVacant");
-                        bulkCopy.ColumnMappings.Add("IsPublicHoliday", "IsPublicHoliday");
-                        bulkCopy.ColumnMappings.Add("CreatedBy", "CreatedBy");
-                        bulkCopy.WriteToServer(table);
-                    }
-                }
-                return rows.Count;
+            var table = new DataTable();
+            table.Columns.Add("HostLocation", typeof(string));
+            table.Columns.Add("EmployeeId", typeof(int));
+            table.Columns.Add("EmployeeNameRaw", typeof(string));
+            table.Columns.Add("ScheduleDate", typeof(DateTime));
+            table.Columns.Add("SeatSlot", typeof(int));
+            table.Columns.Add("IsVacant", typeof(bool));
+            table.Columns.Add("IsPublicHoliday", typeof(bool));
+            table.Columns.Add("CreatedBy", typeof(string));
+
+            foreach (var r in rows)
+            {
+                var dr = table.NewRow();
+                dr["HostLocation"] = r.HostLocation;
+                dr["EmployeeId"] = (object)r.EmployeeId ?? DBNull.Value;
+                dr["EmployeeNameRaw"] = r.EmployeeNameRaw ?? "";
+                dr["ScheduleDate"] = r.ScheduleDate;
+                dr["SeatSlot"] = (object)r.SeatSlot ?? DBNull.Value;
+                dr["IsVacant"] = r.IsVacant;
+                dr["IsPublicHoliday"] = r.IsPublicHoliday;
+                dr["CreatedBy"] = r.CreatedBy ?? "Import";
+                table.Rows.Add(dr);
             }
-    
+
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                using (var bulkCopy = new SqlBulkCopy(connection))
+                {
+                    bulkCopy.DestinationTableName = "dbo.Schedules";
+                    bulkCopy.ColumnMappings.Add("HostLocation", "HostLocation");
+                    bulkCopy.ColumnMappings.Add("EmployeeId", "EmployeeId");
+                    bulkCopy.ColumnMappings.Add("EmployeeNameRaw", "EmployeeNameRaw");
+                    bulkCopy.ColumnMappings.Add("ScheduleDate", "ScheduleDate");
+                    bulkCopy.ColumnMappings.Add("SeatSlot", "SeatSlot");
+                    bulkCopy.ColumnMappings.Add("IsVacant", "IsVacant");
+                    bulkCopy.ColumnMappings.Add("IsPublicHoliday", "IsPublicHoliday");
+                    bulkCopy.ColumnMappings.Add("CreatedBy", "CreatedBy");
+                    bulkCopy.WriteToServer(table);
+                }
+            }
+            return rows.Count;
+        }
+
         // Best-effort case-insensitive name match against Employees.Name.
         // Returns null (unmatched) rather than guessing on a partial match.
         // Filtered to IsActive=1: a newly-imported schedule shouldn't
@@ -641,7 +823,7 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
                 return result == null ? (int?)null : Convert.ToInt32(result);
             }
         }
-    
+
         public List<ScheduleModel> GetScheduleForDate(DateTime date, string hostLocation = null)
         {
             var rows = new List<ScheduleModel>();
@@ -1037,5 +1219,247 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
                 command.ExecuteNonQuery();
             }
         }
+
+        // Logs an application-layer error (e.g. an unhandled exception
+        // caught in a controller) into the same ErrorLog table the
+        // mst_spCheckInEmployee stored procedure already writes to - so
+        // there's one place to check regardless of whether an error came
+        // from application code or from inside a stored procedure.
+        // is_valid = -99 distinguishes these from the stored procedure's
+        // own codes (0, -1, -2, -3) so they're easy to tell apart when
+        // browsing the table.
+        //
+        // actioned_user is an int column (Employees.Id) - the same reason
+        // mst_spCheckInEmployee itself used to crash on unmatched names.
+        // actionedUserName is resolved to a real employee Id where
+        // possible; 0 is used as a placeholder "Unknown" employee Id when
+        // it can't be resolved (e.g. someone typed garbage into the
+        // Employee field), rather than trying to insert the raw name text
+        // into an int column. The actual typed name is preserved in the
+        // logged message either way, so nothing is lost.
+        public void LogApplicationError(string appErrorMessage, string exceptionDetails, string actionedUserName)
+        {
+            DateTime sastNow;
+            try
+            {
+                var sastZone = TimeZoneInfo.FindSystemTimeZoneById("South Africa Standard Time");
+                sastNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, sastZone);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                sastNow = DateTime.UtcNow.AddHours(2);
+            }
+
+            int? employeeId = ResolveEmployeeIdByName(actionedUserName);
+            int actionedUserId = employeeId ?? 0;
+
+            string fullAppErrorMessage = employeeId.HasValue
+                ? appErrorMessage
+                : appErrorMessage + " (submitted name: " + (actionedUserName ?? "none") + ")";
+
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    @"INSERT INTO [dbo].[ErrorLog] ([sys_err_desc],[sys_err_severity],[sys_err_state],[app_err_desc],[date_created],[actioned_user],[is_valid])
+                      VALUES (@SysErrDesc, NULL, NULL, @AppErrDesc, @DateCreated, @ActionedUser, -99)",
+                    connection);
+                command.Parameters.AddWithValue("@SysErrDesc", (object)exceptionDetails ?? DBNull.Value);
+                command.Parameters.AddWithValue("@AppErrDesc", fullAppErrorMessage);
+                command.Parameters.AddWithValue("@DateCreated", sastNow);
+                command.Parameters.AddWithValue("@ActionedUser", actionedUserId);
+
+                connection.Open();
+                command.ExecuteNonQuery();
+            }
+        }
+
+        public List<EmployeeDetail> GetAllEmployeesDetailed()
+        {
+            var result = new List<EmployeeDetail>();
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    @"SELECT Id, Name, DepartmentName, IsActive, Gender, Ethnicity, Occupational_Level, Position
+              FROM [dbo].[Employees]
+              ORDER BY Name ASC",
+                    connection);
+
+                connection.Open();
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    result.Add(new EmployeeDetail
+                    {
+                        Id = Convert.ToInt32(reader["Id"]),
+                        Name = reader["Name"] as string,
+                        DepartmentName = reader["DepartmentName"] as string,
+                        IsActive = reader["IsActive"] != DBNull.Value && Convert.ToBoolean(reader["IsActive"]),
+                        Gender = reader["Gender"] as string,
+                        Ethnicity = reader["Ethnicity"] as string,
+                        OccupationalLevel = reader["Occupational_Level"] as string,
+                        Position = reader["Position"] as string
+                    });
+                }
+            }
+            return result;
+        }
+
+        public int InsertEmployee(string name, string departmentName, string gender, string ethnicity, string occupationalLevel, string position)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    @"INSERT INTO [dbo].[Employees] (Name, DepartmentName, IsActive, Gender, Ethnicity, Occupational_Level, Position)
+              OUTPUT INSERTED.Id
+              VALUES (@Name, @DepartmentName, 1, @Gender, @Ethnicity, @OccupationalLevel, @Position)",
+                    connection);
+                command.Parameters.AddWithValue("@Name", name);
+                command.Parameters.AddWithValue("@DepartmentName", (object)departmentName ?? DBNull.Value);
+                command.Parameters.AddWithValue("@Gender", (object)gender ?? DBNull.Value);
+                command.Parameters.AddWithValue("@Ethnicity", (object)ethnicity ?? DBNull.Value);
+                command.Parameters.AddWithValue("@OccupationalLevel", (object)occupationalLevel ?? DBNull.Value);
+                command.Parameters.AddWithValue("@Position", (object)position ?? DBNull.Value);
+
+                connection.Open();
+                var newId = command.ExecuteScalar();
+                return Convert.ToInt32(newId);
+            }
+        }
+
+        public bool UpdateEmployee(int id, string name, string departmentName, string gender, string ethnicity, string occupationalLevel, string position)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    @"UPDATE [dbo].[Employees]
+              SET Name = @Name, DepartmentName = @DepartmentName, Gender = @Gender,
+                  Ethnicity = @Ethnicity, Occupational_Level = @OccupationalLevel, Position = @Position
+              WHERE Id = @Id",
+                    connection);
+                command.Parameters.AddWithValue("@Id", id);
+                command.Parameters.AddWithValue("@Name", name);
+                command.Parameters.AddWithValue("@DepartmentName", (object)departmentName ?? DBNull.Value);
+                command.Parameters.AddWithValue("@Gender", (object)gender ?? DBNull.Value);
+                command.Parameters.AddWithValue("@Ethnicity", (object)ethnicity ?? DBNull.Value);
+                command.Parameters.AddWithValue("@OccupationalLevel", (object)occupationalLevel ?? DBNull.Value);
+                command.Parameters.AddWithValue("@Position", (object)position ?? DBNull.Value);
+
+                connection.Open();
+                return command.ExecuteNonQuery() > 0;
+            }
+        }
+
+        public bool SetEmployeeActive(int id, bool isActive)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    "UPDATE [dbo].[Employees] SET IsActive = @IsActive WHERE Id = @Id",
+                    connection);
+                command.Parameters.AddWithValue("@Id", id);
+                command.Parameters.AddWithValue("@IsActive", isActive);
+
+                connection.Open();
+                return command.ExecuteNonQuery() > 0;
+            }
+        }
+
+        // ============================================================
+        // NEW METHODS - Site Management (mst_Sites CRUD)
+        // ============================================================
+        // Add these inside the existing `dal` class in Data_Access_Layer/dal.cs,
+        // near the existing GetSites() method. Reuses the existing SiteInfo model
+        // (already used by GetSites()) - no new model needed.
+
+        public int InsertSite(string siteName, double latitude, double longitude, int radiusMeters)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    @"INSERT INTO [dbo].[mst_Sites] (SiteName, Latitude, Longitude, RadiusMeters)
+              OUTPUT INSERTED.Id
+              VALUES (@SiteName, @Latitude, @Longitude, @RadiusMeters)",
+                    connection);
+                command.Parameters.AddWithValue("@SiteName", siteName);
+                command.Parameters.AddWithValue("@Latitude", latitude);
+                command.Parameters.AddWithValue("@Longitude", longitude);
+                command.Parameters.AddWithValue("@RadiusMeters", radiusMeters);
+
+                connection.Open();
+                var newId = command.ExecuteScalar();
+                return Convert.ToInt32(newId);
+            }
+        }
+
+        public bool UpdateSite(int id, string siteName, double latitude, double longitude, int radiusMeters)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    @"UPDATE [dbo].[mst_Sites]
+              SET SiteName = @SiteName, Latitude = @Latitude, Longitude = @Longitude, RadiusMeters = @RadiusMeters
+              WHERE Id = @Id",
+                    connection);
+                command.Parameters.AddWithValue("@Id", id);
+                command.Parameters.AddWithValue("@SiteName", siteName);
+                command.Parameters.AddWithValue("@Latitude", latitude);
+                command.Parameters.AddWithValue("@Longitude", longitude);
+                command.Parameters.AddWithValue("@RadiusMeters", radiusMeters);
+
+                connection.Open();
+                return command.ExecuteNonQuery() > 0;
+            }
+        }
+
+        public bool DeleteSite(int id)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand("DELETE FROM [dbo].[mst_Sites] WHERE Id = @Id", connection);
+                command.Parameters.AddWithValue("@Id", id);
+
+                connection.Open();
+                return command.ExecuteNonQuery() > 0;
+            }
+        }
+
+        // GetSites() returned by Id in your existing dal.cs doesn't currently
+        // expose the row Id back to callers (SiteInfo as shown earlier only has
+        // SiteName/Latitude/Longitude/RadiusMeters). Update BOTH the SiteInfo
+        // model and GetSites() itself as follows, since the Settings grid needs
+        // a row Id to edit/delete a specific site:
+        //
+        // 1) In Models/SiteInfo.cs, add:
+        //        public int Id { get; set; }
+        //
+        // 2) Replace the existing GetSites() method in dal.cs with this version
+        //    (adds Id to the SELECT and the object initializer - everything
+        //    else about it is unchanged):
+        //
+        //    public List<SiteInfo> GetSites()
+        //    {
+        //        var sites = new List<SiteInfo>();
+        //        using (SqlConnection connection = new SqlConnection(_connectionString))
+        //        {
+        //            var command = new SqlCommand(
+        //                "SELECT Id, SiteName, Latitude, Longitude, RadiusMeters FROM [dbo].[mst_Sites]",
+        //                connection);
+        //
+        //            connection.Open();
+        //            var reader = command.ExecuteReader();
+        //            while (reader.Read())
+        //            {
+        //                sites.Add(new SiteInfo
+        //                {
+        //                    Id = Convert.ToInt32(reader["Id"]),
+        //                    SiteName = reader["SiteName"].ToString(),
+        //                    Latitude = Convert.ToDouble(reader["Latitude"]),
+        //                    Longitude = Convert.ToDouble(reader["Longitude"]),
+        //                    RadiusMeters = Convert.ToInt32(reader["RadiusMeters"])
+        //                });
+        //            }
+        //        }
+        //        return sites;
+        //    }
     }
 }

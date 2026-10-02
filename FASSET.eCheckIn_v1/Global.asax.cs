@@ -16,6 +16,7 @@ namespace FASSET.eCheckIn_v1
             FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
             RouteConfig.RegisterRoutes(RouteTable.Routes);
             BundleConfig.RegisterBundles(BundleTable.Bundles);
+            FASSET.eCheckIn_v1.Services.OfflineSyncService.EnsureRunning();
         }
     }
 }

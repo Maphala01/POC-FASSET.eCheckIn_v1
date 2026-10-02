@@ -33,6 +33,8 @@ namespace FASSET.eCheckIn_v1.Models
 
     public class SiteInfo
     {
+        public int Id { get; set; }   // <-- add this line
+
         public string SiteName { get; set; }
         public double Latitude { get; set; }
         public double Longitude { get; set; }
