@@ -1,12 +1,12 @@
 ﻿@{
     Layout = null;
     var officeName = ViewBag.OfficeName as string ?? "Office";
-    var offices = new[] { "Bank SETA", "FoodBev", "Tehwane South TVET College - Centurion Campus" };
+    var offices = new[] { "Bank SETA", "FoodBev", "Tshwane South TVET College - Centurion Campus" };
     var officeShortLabels = new Dictionary<string, string>
 {
         { "Bank SETA", "Bank SETA" },
         { "FoodBev", "FoodBev" },
-        { "Tehwane South TVET College - Centurion Campus", "Centurion Campus" }
+        { "Tshwane South TVET College - Centurion Campus", "Centurion Campus" }
     };
     Func<string, string> shortLabel = o => officeShortLabels.ContainsKey(o) ? officeShortLabels[o] : o;
 }
