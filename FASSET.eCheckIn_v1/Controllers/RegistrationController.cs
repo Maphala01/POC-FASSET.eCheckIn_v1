@@ -23,13 +23,27 @@ namespace FASSET.eCheckIn_v1.Controllers
             // Loads from the database; if the database is unreachable, falls
             // back to the last good snapshot so the form still opens and a
             // check-in can still be captured to the offline queue.
-            ViewBag.Departments = FromDbOrCache(
+            var departments = FromDbOrCache(
                 () => _dbAccess.GetDepartments(),
                 () =>
                 {
                     List<Department> cached;
                     return ReferenceDataCache.TryGetDepartments(out cached) ? cached : null;
-                });
+                },
+                null);
+
+            if (departments == null)
+            {
+                // Database down AND no saved snapshot yet - show the form with
+                // a clear message instead of an error screen.
+                ViewBag.Departments = new List<Department>();
+                ViewBag.Message = "Check-in is temporarily unavailable. Please try again in a few minutes - if this keeps happening, let ICT know.";
+                ViewBag.MessageType = "error";
+            }
+            else
+            {
+                ViewBag.Departments = departments;
+            }
 
             ReferenceDataCache.RefreshInBackgroundIfStale();
             return View();
@@ -40,7 +54,8 @@ namespace FASSET.eCheckIn_v1.Controllers
         {
             var departments = FromDbOrCache(
                 () => _dbAccess.GetDepartmentsByTerm(term),
-                () => ReferenceDataCache.SearchDepartments(term));
+                () => ReferenceDataCache.SearchDepartments(term),
+                new List<Department>());
             return Json(departments, JsonRequestBehavior.AllowGet);
         }
 
@@ -49,7 +64,8 @@ namespace FASSET.eCheckIn_v1.Controllers
         {
             var employees = FromDbOrCache(
                 () => _dbAccess.GetEmployeesByTerm(term, department),
-                () => ReferenceDataCache.SearchEmployees(term, department));
+                () => ReferenceDataCache.SearchEmployees(term, department),
+                new List<Employee>());
             return Json(employees, JsonRequestBehavior.AllowGet);
         }
 
@@ -225,8 +241,9 @@ namespace FASSET.eCheckIn_v1.Controllers
         // Runs a database read; if the database is unreachable, serves the
         // snapshot instead (and remembers the outage briefly so the next
         // requests don't each wait out a connect timeout). If there is no
-        // snapshot yet, the original database error is rethrown as before.
-        private static T FromDbOrCache<T>(Func<T> fromDb, Func<T> fromCache) where T : class
+        // snapshot either, returns whenUnavailable instead of throwing, so
+        // the page can show a friendly message rather than an error screen.
+        private static T FromDbOrCache<T>(Func<T> fromDb, Func<T> fromCache, T whenUnavailable) where T : class
         {
             if (OfflineCheckInQueue.IsCircuitOpen)
             {
@@ -244,8 +261,7 @@ namespace FASSET.eCheckIn_v1.Controllers
             {
                 OfflineCheckInQueue.OpenCircuit();
                 T cached = fromCache();
-                if (cached == null) { throw; }
-                return cached;
+                return cached ?? whenUnavailable;
             }
         }
     }

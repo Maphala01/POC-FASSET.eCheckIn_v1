@@ -1,34 +1,61 @@
-﻿<!DOCTYPE html>
+﻿@{
+    Layout = null;
+}
+<!DOCTYPE html>
 <html>
 <head>
-    <meta name="viewport" content="width=device-width" />
-    <title>Error</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FASSET eCheckIn</title>
+    <style>
+        body {
+            font-family: Segoe UI, Arial, sans-serif;
+            background: #f4f6f9;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .box {
+            background: #fff;
+            padding: 32px;
+            border-radius: 12px;
+            max-width: 420px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(0,0,0,.08);
+        }
+
+        h1 {
+            font-size: 1.3rem;
+            color: #1e3a5f;
+            margin-top: 0;
+        }
+
+        p {
+            color: #555;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 10px 20px;
+            background: #e8473f;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+        }
+    </style>
 </head>
 <body>
-    <h1 class="text-danger">Error....Maaps</h1>
-    <h2 class="text-danger">An error occurred while processing your request.</h2>
-
-    @if (Model != null)
-    {
-        <div>
-            <h3 class="text-danger">Request ID: @Model.RequestId</h3>
-            <p>
-                Use this unique Request ID to help track the error.
-            </p>
-        </div>
-    }
-
-    @if (ViewData["Exception"] != null)
-    {
-        <div>
-            <h4 class="text-danger">Exception Message:</h4>
-            <pre>@ViewData["Exception"].Message</pre>
-
-            <h4 class="text-danger">Stack Trace:</h4>
-            <pre>@ViewData["Exception"].StackTrace</pre>
-        </div>
-    }
+    <div class="box">
+        <h1>Something went wrong</h1>
+        <p>
+            The check-in system ran into a problem. Please try again in a minute.<br />
+            If this keeps happening, let ICT(devsupport@fasset.org.za/Maphala.Seakamela@fasset.org.za) know.
+        </p>
+        <a href="/Registration">Back to Check In</a>
+    </div>
 </body>
 </html>
-
-
