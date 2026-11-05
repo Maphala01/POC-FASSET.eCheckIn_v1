@@ -1486,10 +1486,13 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" stroke-linecap="round" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" stroke-linecap="round" /></svg>
                 Schedule
             </a>
-            <a href="@Url.Action("Index", "Employees")" class="sidebar-link">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0113 0" stroke-linecap="round" /><path d="M16 4.5a3.5 3.5 0 010 7M22 20a6 6 0 00-4.5-8.7" stroke-linecap="round" /></svg>
-                Employee Management
-            </a>
+            @if (User.IsInRole("Admin"))
+            {
+                <a href="@Url.Action("Index", "Employees")" class="sidebar-link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0113 0" stroke-linecap="round" /><path d="M16 4.5a3.5 3.5 0 010 7M22 20a6 6 0 00-4.5-8.7" stroke-linecap="round" /></svg>
+                    Employee Management
+                </a>
+            }
             <a href="@Url.Action("Directory", "Employees")" class="sidebar-link">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87M9 7a4 4 0 118 0 4 4 0 01-8 0z" stroke-linecap="round" stroke-linejoin="round" /><circle cx="9" cy="17" r="4" /></svg>
                 FASSET Employees
@@ -1503,14 +1506,20 @@
             }
 
             <div class="sidebar-section-label">Account</div>
-            <a href="@Url.Action("Index", "Settings")" class="sidebar-link">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
-                Settings
-            </a>
-            <a href="@Url.Action("CreateAdmin", "Account")" class="sidebar-link">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke-linecap="round" /><circle cx="12" cy="7" r="4" /></svg>
-                Create Admin
-            </a>
+            @if (User.IsInRole("Admin"))
+            {
+                <a href="@Url.Action("Index", "Settings")" class="sidebar-link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
+                    Settings
+                </a>
+            }
+            @if (User.IsInRole("Admin"))
+            {
+                <a href="@Url.Action("CreateAdmin", "Account")" class="sidebar-link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke-linecap="round" /><circle cx="12" cy="7" r="4" /></svg>
+                    Create Admin
+                </a>
+            }
             <a href="#" class="sidebar-link" onclick="document.getElementById('logOutForm').submit(); return false;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" stroke-linecap="round" stroke-linejoin="round" /><path d="M16 17l5-5-5-5M21 12H9" stroke-linecap="round" stroke-linejoin="round" /></svg>
                 Log Out
@@ -1661,7 +1670,7 @@
                     <canvas id="chartExecHour"></canvas>
                     <div class="kpi-footer">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0115.3-6.4L21 8M3 12a9 9 0 0015.3 6.4L21 16M21 3v5h-5M3 21v-5h5" stroke-linecap="round" /></svg>
-                        Just updated &middot; <span class="kpi-footer-time" id="kpiUpdatedTimeHour">-</span> &middot; expected start at <span id="expectedStartLabel">09:00</span>
+                        Just updated &middot; <span class="kpi-footer-time" id="kpiUpdatedTimeHour">-</span> &middot; expected start at <span id="expectedStartLabel">@ViewBag.LateCutoff</span>
                     </div>
                 </div>
             </div>
@@ -1988,7 +1997,7 @@
             end: null,
             department: '',
             location: '',
-            lateAfter: '09:00'
+            lateAfter: '@ViewBag.LateCutoff'
         };
 
         function exportToExcel() {

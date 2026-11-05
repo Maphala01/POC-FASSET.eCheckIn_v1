@@ -29,6 +29,7 @@ namespace FASSET.eCheckIn_v1.Models
         public string EmployeeName { get; set; }
         public DateTime ScheduleDate { get; set; }
         public string HostLocation { get; set; }
+        public string DepartmentName { get; set; }
     }
 
     public class SiteInfo

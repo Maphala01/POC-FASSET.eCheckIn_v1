@@ -304,12 +304,18 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
 
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
+                // DepartmentName is resolved the same way as
+                // GetCheckInReportData (numeric codes -> Departments name),
+                // so department filters and role scoping match on both sides.
                 string sql = @"
                     SELECT
-                        s.EmployeeId, e.Name AS EmployeeName, s.ScheduleDate, s.HostLocation
-                    FROM [dbo].Schedules s 
+                        s.EmployeeId, e.Name AS EmployeeName, s.ScheduleDate, s.HostLocation,
+                        COALESCE(d.DepartmentName, e.DepartmentName) AS DepartmentName
+                    FROM [dbo].Schedules s
                     JOIN [dbo].[Employees] e ON e.Id = s.EmployeeId
-                    WHERE s.ScheduleDate >= @StartDate AND s.ScheduleDate < @EndDateExclusive AND s.IsVacant = 0 AND s.IsPublicHoliday = 0 AND (@Department IS NULL OR e.DepartmentName = @Department)";
+                    LEFT JOIN [dbo].[Departments] d ON TRY_CAST(e.DepartmentName AS INT) = d.Id
+                    WHERE s.ScheduleDate >= @StartDate AND s.ScheduleDate < @EndDateExclusive AND s.IsVacant = 0 AND s.IsPublicHoliday = 0
+                      AND (@Department IS NULL OR COALESCE(d.DepartmentName, e.DepartmentName) = @Department)";
 
                 var command = new SqlCommand(sql, connection);
                 command.Parameters.AddWithValue("@StartDate", startDate.Date);
@@ -325,7 +331,8 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
                         EmployeeId = Convert.ToInt32(reader["EmployeeId"]),
                         EmployeeName = reader["EmployeeName"] as string,
                         ScheduleDate = Convert.ToDateTime(reader["ScheduleDate"]),
-                        HostLocation = reader["HostLocation"] as string
+                        HostLocation = reader["HostLocation"] as string,
+                        DepartmentName = reader["DepartmentName"] as string
                     });
                 }
             }
@@ -1205,19 +1212,130 @@ namespace FASSET.eCheckIn_v1.Data_Access_Layer
             }
         }
 
-        public void InsertAdmin(string username, string passwordHash)
+        // ---- Role-based report access (needs SQL/001_role_based_access.sql) ----
+
+        // A user's role plus the departments they may report on, or null if
+        // the username isn't in dbo.Admins. Department names come from the
+        // Departments table, matching what the reports show.
+        public AdminAccess GetAdminAccess(string username)
         {
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
-                var command = new SqlCommand(
-                    "INSERT INTO [dbo].[Admins] (Username, PasswordHash) VALUES (@Username, @PasswordHash)",
-                    connection);
-                command.Parameters.AddWithValue("@Username", username);
-                command.Parameters.AddWithValue("@PasswordHash", passwordHash);
-
                 connection.Open();
-                command.ExecuteNonQuery();
+
+                var roleCommand = new SqlCommand(
+                    "SELECT Role FROM [dbo].[Admins] WHERE Username = @Username",
+                    connection);
+                roleCommand.Parameters.AddWithValue("@Username", username);
+                var roleValue = roleCommand.ExecuteScalar();
+                if (roleValue == null) return null;
+
+                var access = new AdminAccess
+                {
+                    Username = username,
+                    // An unrecognised or empty role gets no access at all.
+                    Role = roleValue == DBNull.Value ? null : AppRoles.Normalize(roleValue.ToString().Trim()),
+                    Departments = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                };
+
+                var deptCommand = new SqlCommand(
+                    @"SELECT d.DepartmentName
+                      FROM [dbo].[AdminDepartmentScope] s
+                      JOIN [dbo].[Departments] d ON d.Id = s.DepartmentId
+                      WHERE s.Username = @Username",
+                    connection);
+                deptCommand.Parameters.AddWithValue("@Username", username);
+                using (var reader = deptCommand.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        if (reader["DepartmentName"] != DBNull.Value)
+                            access.Departments.Add(reader["DepartmentName"].ToString().Trim());
+                    }
+                }
+
+                return access;
             }
+        }
+
+        // Every department with its Id, for the role/department picker on
+        // Account/CreateAdmin.
+        public List<KeyValuePair<int, string>> GetDepartmentIdNames()
+        {
+            var result = new List<KeyValuePair<int, string>>();
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    "SELECT Id, DepartmentName FROM [dbo].[Departments] ORDER BY DepartmentName ASC",
+                    connection);
+                connection.Open();
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        result.Add(new KeyValuePair<int, string>(
+                            Convert.ToInt32(reader["Id"]), reader["DepartmentName"].ToString()));
+                    }
+                }
+            }
+            return result;
+        }
+
+        // Creates a user with a role and (for LLC/Manager) their departments,
+        // in one transaction so a half-created user can't be left behind.
+        public void InsertAdmin(string username, string passwordHash, string role, IEnumerable<int> departmentIds)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                using (var tx = connection.BeginTransaction())
+                {
+                    var command = new SqlCommand(
+                        "INSERT INTO [dbo].[Admins] (Username, PasswordHash, Role) VALUES (@Username, @PasswordHash, @Role)",
+                        connection, tx);
+                    command.Parameters.AddWithValue("@Username", username);
+                    command.Parameters.AddWithValue("@PasswordHash", passwordHash);
+                    command.Parameters.AddWithValue("@Role", role);
+                    command.ExecuteNonQuery();
+
+                    foreach (int departmentId in (departmentIds ?? Enumerable.Empty<int>()).Distinct())
+                    {
+                        var scope = new SqlCommand(
+                            "INSERT INTO [dbo].[AdminDepartmentScope] (Username, DepartmentId) VALUES (@Username, @DepartmentId)",
+                            connection, tx);
+                        scope.Parameters.AddWithValue("@Username", username);
+                        scope.Parameters.AddWithValue("@DepartmentId", departmentId);
+                        scope.ExecuteNonQuery();
+                    }
+
+                    tx.Commit();
+                }
+            }
+        }
+
+        // Employee Id -> reporting department name (numeric codes resolved
+        // via Departments), used to check a user may see one employee's
+        // history and to scope the staff directory.
+        public Dictionary<int, string> GetEmployeeReportingDepartments()
+        {
+            var result = new Dictionary<int, string>();
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                var command = new SqlCommand(
+                    @"SELECT e.Id, COALESCE(d.DepartmentName, e.DepartmentName) AS DepartmentName
+                      FROM [dbo].[Employees] e
+                      LEFT JOIN [dbo].[Departments] d ON TRY_CAST(e.DepartmentName AS INT) = d.Id",
+                    connection);
+                connection.Open();
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        result[Convert.ToInt32(reader["Id"])] = reader["DepartmentName"] as string;
+                    }
+                }
+            }
+            return result;
         }
 
         // Logs an application-layer error (e.g. an unhandled exception

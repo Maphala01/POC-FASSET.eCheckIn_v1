@@ -1,0 +1,11 @@
+@{
+    ViewBag.Title = "Access denied";
+}
+<div style="max-width: 520px; margin: 48px auto; text-align: center;">
+    <h2 style="margin-bottom: 12px;">You don't have access to this page</h2>
+    <p style="color: #475569; margin-bottom: 24px;">
+        Your account can view the attendance reports for your own area only.
+        If you think you should have access, please contact ICT.
+    </p>
+    <a href="@Url.Action("Index", "Reports")" style="display: inline-block; padding: 10px 20px; background: #1b3f6e; color: #fff; border-radius: 8px; text-decoration: none; font-weight: 600;">Go to reports</a>
+</div>

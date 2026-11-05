@@ -5,6 +5,8 @@ using FASSET.eCheckIn_v1.Services;
 
 namespace FASSET.eCheckIn_v1.Controllers
 {
+    // Site configuration and offline-sync controls: ICT (Admin) only.
+    [RoleAuthorize(Roles = AppRoles.Admin)]
     public class SettingsController : Controller
     {
         dal _dbAccess = new dal();

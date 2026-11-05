@@ -137,7 +137,7 @@ namespace FASSET.eCheckIn_v1.Controllers
         }
 
         // GET: Schedule/Edit — the drag-and-drop assignment screen
-        [Authorize]
+        [RoleAuthorize(Roles = AppRoles.Admin)]
         public ActionResult Edit(string hostLocation)
         {
             var hostLocations = _dal.GetDistinctHostLocations();
@@ -156,7 +156,7 @@ namespace FASSET.eCheckIn_v1.Controllers
         }
 
         // POST: Schedule/Edit
-        [Authorize]
+        [RoleAuthorize(Roles = AppRoles.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Edit(ScheduleEditViewModel vm)
@@ -193,7 +193,7 @@ namespace FASSET.eCheckIn_v1.Controllers
         }
 
         // POST: Schedule/Delete
-        [Authorize]
+        [RoleAuthorize(Roles = AppRoles.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Delete(int id, string hostLocation, int year, int month)
@@ -227,7 +227,7 @@ namespace FASSET.eCheckIn_v1.Controllers
 
         // POST: Schedule/QuickAssign — called when an employee chip is
         // dragged from the Employees panel and dropped onto a calendar day.
-        [Authorize]
+        [RoleAuthorize(Roles = AppRoles.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public JsonResult QuickAssign(int employeeId, string hostLocation, DateTime date)
@@ -258,7 +258,7 @@ namespace FASSET.eCheckIn_v1.Controllers
         }
 
         // GET: Schedule/EntryDetails — feeds the click-to-edit popup
-        [Authorize]
+        [RoleAuthorize(Roles = AppRoles.Admin)]
         [HttpGet]
         public JsonResult EntryDetails(int id)
         {
@@ -280,7 +280,7 @@ namespace FASSET.eCheckIn_v1.Controllers
         }
 
         // POST: Schedule/UpdateEntryQuick — Save button in the popup
-        [Authorize]
+        [RoleAuthorize(Roles = AppRoles.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public JsonResult UpdateEntryQuick(int id, int? seatSlot, bool isVacant)
@@ -302,7 +302,7 @@ namespace FASSET.eCheckIn_v1.Controllers
         }
 
         // POST: Schedule/DeleteEntryQuick — Delete button in the popup
-        [Authorize]
+        [RoleAuthorize(Roles = AppRoles.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public JsonResult DeleteEntryQuick(int id)
@@ -313,7 +313,7 @@ namespace FASSET.eCheckIn_v1.Controllers
 
 
         // GET: Schedule/DayRoster — feeds the "manage this day" modal
-        [Authorize]
+        [RoleAuthorize(Roles = AppRoles.Admin)]
         [HttpGet]
         public JsonResult DayRoster(string hostLocation, DateTime date)
         {
@@ -335,7 +335,7 @@ namespace FASSET.eCheckIn_v1.Controllers
         // site+day: anything previously there but missing from the list
         // gets deleted, existing rows get updated, id=0 rows get inserted
         // (with an auto-assigned seat number).
-        [Authorize]
+        [RoleAuthorize(Roles = AppRoles.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public JsonResult SaveDayRoster(string hostLocation, DateTime date, string rowsJson)
@@ -401,7 +401,7 @@ namespace FASSET.eCheckIn_v1.Controllers
         // POST: Schedule/SwapEntries — drag Person X onto Person Y in the
         // two-panel modal. Trades both their date AND seat slot, so neither
         // side can ever collide with what was already sitting in that spot.
-        [Authorize]
+        [RoleAuthorize(Roles = AppRoles.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public JsonResult SwapEntries(int id1, int id2)
@@ -429,7 +429,7 @@ namespace FASSET.eCheckIn_v1.Controllers
 
         // GET: Schedule/EmployeesForSite — site-scoped employee list for
         // the "add employee" dropdown in the Edit modal.
-        [Authorize]
+        [RoleAuthorize(Roles = AppRoles.Admin)]
         [HttpGet]
         public JsonResult EmployeesForSite(string hostLocation)
         {

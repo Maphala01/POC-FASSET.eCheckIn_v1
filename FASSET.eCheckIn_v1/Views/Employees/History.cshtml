@@ -502,12 +502,21 @@
 
             <div class="sidebar-section-label">Manage</div>
             <a href="@Url.Action("Calendar", "Schedule")" class="sidebar-link">Schedule</a>
-            <a href="@Url.Action("Index", "Employees")" class="sidebar-link">Employee Management</a>
+            @if (User.IsInRole("Admin"))
+            {
+                <a href="@Url.Action("Index", "Employees")" class="sidebar-link">Employee Management</a>
+            }
             <a href="@Url.Action("Directory", "Employees")" class="sidebar-link active">FASSET Employees</a>
 
             <div class="sidebar-section-label">Account</div>
-            <a href="@Url.Action("Index", "Settings")" class="sidebar-link">Settings</a>
-            <a href="@Url.Action("CreateAdmin", "Account")" class="sidebar-link">Create Admin</a>
+            @if (User.IsInRole("Admin"))
+            {
+                <a href="@Url.Action("Index", "Settings")" class="sidebar-link">Settings</a>
+            }
+            @if (User.IsInRole("Admin"))
+            {
+                <a href="@Url.Action("CreateAdmin", "Account")" class="sidebar-link">Create Admin</a>
+            }
             <a href="#" class="sidebar-link" onclick="document.getElementById('logOutForm').submit(); return false;">Log Out</a>
             @using (Html.BeginForm("Logout", "Account", FormMethod.Post, new { id = "logOutForm", style = "display:none;" })) { }
         </nav>
@@ -552,7 +561,7 @@
                 <div class="kpi-value">@daysMissed</div>
             </div>
             <div class="kpi-card border-green">
-                <div class="kpi-label">On Time / Late</div>
+                <div class="kpi-label">On Time / Late (after @ViewBag.LateCutoff)</div>
                 <div class="kpi-value">@onTimeCount / @lateCount</div>
             </div>
             <div class="kpi-card border-navy">
@@ -577,7 +586,7 @@
                         <tbody>
                             @foreach (var c in checkIns)
                             {
-                                bool isLate = c.DateCreated.TimeOfDay > new TimeSpan(9, 0, 0);
+                                bool isLate = FASSET.eCheckIn_v1.Services.AttendanceRules.IsLate(c.DateCreated);
                                 <tr>
                                     <td>@c.DateCreated.ToString("dddd, d MMMM")</td>
                                     <td>@c.DateCreated.ToString("HH:mm")</td>
@@ -593,7 +602,7 @@
                 <h2>Missed Days &mdash; @monthLabel</h2>
                 @if (missedDates == null || missedDates.Count == 0)
                 {
-                    <div class="empty-note">No missed days this month &mdash; every scheduled day was checked in.</div>
+                    <div class="empty-note">No missed days this month &mdash; came in as many days as scheduled each week.</div>
                 }
                 else
                 {

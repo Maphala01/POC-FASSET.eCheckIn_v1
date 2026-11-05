@@ -10,6 +10,7 @@ using System.Net;
 using System.Web.Mvc;
 using System.Web.Script.Serialization;
 using FASSET.eCheckIn_v1.Models;
+using FASSET.eCheckIn_v1.Services;
 using OfficeOpenXml;
 using OfficeOpenXml.Drawing.Chart;
 using OfficeOpenXml.Style;
@@ -17,6 +18,10 @@ using OfficeOpenXml.Table;
 
 namespace FASSET.eCheckIn_v1.Controllers
 {
+    // Reports need a login with a report role (A1/D2). What each user
+    // sees is limited server-side to the departments their role allows -
+    // see ScopeRequest and the department filters in Data()/ExportExcel().
+    [RoleAuthorize(Roles = AppRoles.AnyReportRole)]
     public class ReportsController : Controller
     {
         Data_Access_Layer.dal _dbAccess = new Data_Access_Layer.dal();
@@ -34,7 +39,9 @@ namespace FASSET.eCheckIn_v1.Controllers
         // GET: Reports
         public ActionResult Index()
         {
-            ViewBag.Departments = _dbAccess.GetDepartmentNamesForReporting();
+            var access = AdminAccessService.Current(HttpContext);
+            ViewBag.Departments = access.FilterDepartments(_dbAccess.GetDepartmentNamesForReporting());
+            ViewBag.LateCutoff = AttendanceRules.LateCutoffLabel;
 
             var rawLocations = _dbAccess.GetDistinctRawGeoLocations();
             ViewBag.Locations = rawLocations
@@ -55,6 +62,7 @@ namespace FASSET.eCheckIn_v1.Controllers
         public ActionResult Office(string name)
         {
             ViewBag.OfficeName = name;
+            ViewBag.LateCutoff = AttendanceRules.LateCutoffLabel;
             return View();
         }
 
@@ -64,25 +72,27 @@ namespace FASSET.eCheckIn_v1.Controllers
         // the existing Data() endpoint - no new backend logic needed.
         public ActionResult AttendanceDetail()
         {
-            ViewBag.Departments = _dbAccess.GetDepartmentNamesForReporting();
+            var access = AdminAccessService.Current(HttpContext);
+            ViewBag.Departments = access.FilterDepartments(_dbAccess.GetDepartmentNamesForReporting());
+            ViewBag.LateCutoff = AttendanceRules.LateCutoffLabel;
             return View();
         }
 
         // GET: Reports/Data?start=...&end=...&department=...&lateAfter=09:00&location=...&locationStatus=...&radiusBand=...
         [HttpGet]
-        public JsonResult Data(string start, string end, string department, string lateAfter, string location, string locationStatus, string radiusBand)
+        public ActionResult Data(string start, string end, string department, string lateAfter, string location, string locationStatus, string radiusBand)
         {
             DateTime startDate = string.IsNullOrEmpty(start) ? DateTime.Today.AddDays(-30) : DateTime.Parse(start);
             DateTime endDate = string.IsNullOrEmpty(end) ? DateTime.Today : DateTime.Parse(end);
             string dept = string.IsNullOrWhiteSpace(department) ? null : department;
 
-            TimeSpan lateThreshold;
-            if (string.IsNullOrWhiteSpace(lateAfter) || !TimeSpan.TryParse(lateAfter, out lateThreshold))
-            {
-                lateThreshold = new TimeSpan(9, 0, 0); // default 09:00
-            }
+            AdminAccess access;
+            if (!ScopeRequest(dept, out access)) return Forbidden();
 
-            List<CheckInReportRow> rows = _dbAccess.GetCheckInReportData(startDate, endDate, dept);
+            // A4: configured cut-off (Web.config LateCutoff) unless the page asks for another.
+            TimeSpan lateThreshold = AttendanceRules.ResolveLateCutoff(lateAfter);
+
+            List<CheckInReportRow> rows = ScopeRows(_dbAccess.GetCheckInReportData(startDate, endDate, dept), access);
 
             if (!string.IsNullOrWhiteSpace(location))
             {
@@ -156,7 +166,7 @@ namespace FASSET.eCheckIn_v1.Controllers
 
             // Fetched early since byDayOfWeek and byWeek both need it for
             // their "Expected" columns, not just employeeAttendance further down.
-            var scheduledDays = _dbAccess.GetScheduledDays(startDate, endDate.Date.AddDays(1), dept);
+            var scheduledDays = ScopeScheduledDays(_dbAccess.GetScheduledDays(startDate, endDate.Date.AddDays(1), dept), access);
 
             string[] dayOrder = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
             var expectedByDayOfWeek = scheduledDays
@@ -282,18 +292,14 @@ namespace FASSET.eCheckIn_v1.Controllers
             // report - not all-time, since "expected" only makes sense
             // relative to a specific window. (scheduledDays was already
             // fetched earlier, above byDayOfWeek/byWeek - reused here.)
-            var expectedByEmployee = scheduledDays
-                .GroupBy(s => s.EmployeeName)
-                .ToDictionary(g => g.Key, g => g.Select(s => s.ScheduleDate.Date).Distinct().Count());
+            // A3: rate and missed days are worked out week by week from
+            // actual presence (AttendanceRules.Calculate), so a seat swap
+            // within the week no longer counts as a miss.
+            var weeklyByEmployee = BuildWeeklyAttendance(scheduledDays, rows);
 
-            var actualByEmployee = rows
-                .GroupBy(r => r.EmployeeName)
-                .ToDictionary(g => g.Key, g => g.Select(r => r.DateCreated.Date).Distinct().Count());
-
-            // Union of everyone who appears in EITHER dataset - covers both
+            // Everyone who appears in EITHER dataset - covers both
             // "scheduled but never showed up" and "showed up unscheduled".
-            var allEmployeeNames = new HashSet<string>(expectedByEmployee.Keys);
-            allEmployeeNames.UnionWith(actualByEmployee.Keys);
+            var allEmployeeNames = new HashSet<string>(weeklyByEmployee.Keys);
 
             // Each employee's department, taken from their own check-in
             // rows (already resolved to a real name via GetCheckInReportData's
@@ -316,15 +322,15 @@ namespace FASSET.eCheckIn_v1.Controllers
             var employeeAttendance = allEmployeeNames
                 .Select(name =>
                 {
-                    int expected = expectedByEmployee.ContainsKey(name) ? expectedByEmployee[name] : 0;
-                    int actual = actualByEmployee.ContainsKey(name) ? actualByEmployee[name] : 0;
+                    var weekly = weeklyByEmployee[name];
                     return new
                     {
                         employeeName = name,
                         departmentName = departmentByEmployee.ContainsKey(name) ? departmentByEmployee[name] : null,
-                        expectedDays = expected,
-                        actualDays = actual,
-                        ratePercent = expected == 0 ? (double?)null : Math.Round(100.0 * actual / expected, 1)
+                        expectedDays = weekly.RequiredDays,
+                        actualDays = weekly.PresentDays,
+                        missedDays = weekly.MissedDays,
+                        ratePercent = weekly.RatePercent
                     };
                 })
                 // Best rate first, within whichever scope the caller asked
@@ -366,7 +372,7 @@ namespace FASSET.eCheckIn_v1.Controllers
                 .Select(g => new { label = g.Key, count = g.Count() })
                 .ToList();
 
-            var headcounts = _dbAccess.GetEmployeeHeadcountByDepartment();
+            var headcounts = ScopeHeadcounts(_dbAccess.GetEmployeeHeadcountByDepartment(), access);
             var checkedInPerDept = rows
                 .GroupBy(r => r.DepartmentName ?? "Unknown")
                 .ToDictionary(g => g.Key, g => g.Select(r => r.EmployeeName).Distinct().Count());
@@ -431,20 +437,19 @@ namespace FASSET.eCheckIn_v1.Controllers
         // view. If you want the exported sheet to match the dashboard's
         // best-first ordering too, say so and this note goes away.
         [HttpGet]
-        public FileResult ExportExcel(string start, string end, string department, string lateAfter, string location, string locationStatus, string radiusBand)
+        public ActionResult ExportExcel(string start, string end, string department, string lateAfter, string location, string locationStatus, string radiusBand)
         {
             DateTime startDate = string.IsNullOrEmpty(start) ? DateTime.Today.AddDays(-30) : DateTime.Parse(start);
             DateTime endDate = string.IsNullOrEmpty(end) ? DateTime.Today : DateTime.Parse(end);
             string dept = string.IsNullOrWhiteSpace(department) ? null : department;
             string locationFilter = string.IsNullOrWhiteSpace(location) ? null : location;
 
-            TimeSpan lateThreshold;
-            if (string.IsNullOrWhiteSpace(lateAfter) || !TimeSpan.TryParse(lateAfter, out lateThreshold))
-            {
-                lateThreshold = new TimeSpan(9, 0, 0);
-            }
+            AdminAccess access;
+            if (!ScopeRequest(dept, out access)) return Forbidden();
 
-            List<CheckInReportRow> rows = _dbAccess.GetCheckInReportData(startDate, endDate, dept);
+            TimeSpan lateThreshold = AttendanceRules.ResolveLateCutoff(lateAfter);
+
+            List<CheckInReportRow> rows = ScopeRows(_dbAccess.GetCheckInReportData(startDate, endDate, dept), access);
             var sites = _dbAccess.GetSites();
             if (locationFilter != null)
             {
@@ -488,8 +493,8 @@ namespace FASSET.eCheckIn_v1.Controllers
                 }).ToList();
             }
 
-            var scheduledDays = _dbAccess.GetScheduledDays(startDate, endDate.Date.AddDays(1), dept);
-            var headcounts = _dbAccess.GetEmployeeHeadcountByDepartment();
+            var scheduledDays = ScopeScheduledDays(_dbAccess.GetScheduledDays(startDate, endDate.Date.AddDays(1), dept), access);
+            var headcounts = ScopeHeadcounts(_dbAccess.GetEmployeeHeadcountByDepartment(), access);
 
             // Overview's new "Expected/Planned Check-ins" KPI card and the
             // Actual-vs-Planned chart both just need the total scheduled
@@ -571,27 +576,25 @@ namespace FASSET.eCheckIn_v1.Controllers
             // Employee Attendance, now with a computed "Primary Location" -
             // the location they check in from most often - so the sheet
             // has something meaningful for a Location filter to act on.
-            var expectedByEmployee = scheduledDays.GroupBy(s => s.EmployeeName).ToDictionary(g => g.Key, g => g.Select(s => s.ScheduleDate.Date).Distinct().Count());
-            var actualByEmployee = rows.GroupBy(r => r.EmployeeName).ToDictionary(g => g.Key, g => g.Select(r => r.DateCreated.Date).Distinct().Count());
+            // A3: weekly-presence based, same as Data().
+            var weeklyByEmployee = BuildWeeklyAttendance(scheduledDays, rows);
             var employeeLocations = rows
                 .GroupBy(r => r.EmployeeName)
                 .ToDictionary(g => g.Key, g => g.GroupBy(r => ResolvePlaceName(RoundLocation(r.GeoLocation)))
                                                  .OrderByDescending(x => x.Count())
                                                  .First().Key);
 
-            var allEmployeeNames = new HashSet<string>(expectedByEmployee.Keys);
-            allEmployeeNames.UnionWith(actualByEmployee.Keys);
+            var allEmployeeNames = new HashSet<string>(weeklyByEmployee.Keys);
 
             var employeeAttendance = allEmployeeNames.Select(name =>
             {
-                int expected = expectedByEmployee.ContainsKey(name) ? expectedByEmployee[name] : 0;
-                int actual = actualByEmployee.ContainsKey(name) ? actualByEmployee[name] : 0;
+                var weekly = weeklyByEmployee[name];
                 return new
                 {
                     EmployeeName = name,
-                    ExpectedDays = expected,
-                    ActualDays = actual,
-                    RatePercent = expected == 0 ? (double?)null : Math.Round(100.0 * actual / expected, 1),
+                    ExpectedDays = weekly.RequiredDays,
+                    ActualDays = weekly.PresentDays,
+                    RatePercent = weekly.RatePercent,
                     PrimaryLocation = employeeLocations.ContainsKey(name) ? employeeLocations[name] : "No check-ins in range"
                 };
             })
@@ -1502,6 +1505,60 @@ namespace FASSET.eCheckIn_v1.Controllers
             for (int w = 0; w < allWeekStarts.Count; w++) ws.Column(2 + w).Width = 18;
             ws.Column(totalCol).Width = 10;
             ws.Column(statusCol).Width = 40;
+        }
+
+        // ---- Role scoping (A1) ----
+
+        // False when the user asked for a department outside their scope.
+        private bool ScopeRequest(string requestedDepartment, out AdminAccess access)
+        {
+            access = AdminAccessService.Current(HttpContext);
+            return requestedDepartment == null || access.CanSeeDepartment(requestedDepartment);
+        }
+
+        private ActionResult Forbidden()
+        {
+            Response.StatusCode = 403;
+            Response.TrySkipIisCustomErrors = true;
+            return Json(new { success = false, message = "You don't have access to that department." }, JsonRequestBehavior.AllowGet);
+        }
+
+        private static List<CheckInReportRow> ScopeRows(List<CheckInReportRow> rows, AdminAccess access)
+        {
+            return access.SeesAllDepartments ? rows : rows.Where(r => access.CanSeeDepartment(r.DepartmentName)).ToList();
+        }
+
+        private static List<ScheduledDayRow> ScopeScheduledDays(List<ScheduledDayRow> days, AdminAccess access)
+        {
+            return access.SeesAllDepartments ? days : days.Where(d => access.CanSeeDepartment(d.DepartmentName)).ToList();
+        }
+
+        private static Dictionary<string, int> ScopeHeadcounts(Dictionary<string, int> headcounts, AdminAccess access)
+        {
+            return access.SeesAllDepartments
+                ? headcounts
+                : headcounts.Where(kv => access.CanSeeDepartment(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
+        }
+
+        // Per-employee weekly attendance (A3) for everyone scheduled or
+        // checked in within the range.
+        private static Dictionary<string, WeeklyAttendance> BuildWeeklyAttendance(List<ScheduledDayRow> scheduledDays, List<CheckInReportRow> rows)
+        {
+            var scheduledByName = scheduledDays
+                .Where(s => s.EmployeeName != null)
+                .GroupBy(s => s.EmployeeName)
+                .ToDictionary(g => g.Key, g => g.Select(s => s.ScheduleDate).ToList());
+            var checkInsByName = rows
+                .Where(r => r.EmployeeName != null)
+                .GroupBy(r => r.EmployeeName)
+                .ToDictionary(g => g.Key, g => g.Select(r => r.DateCreated).ToList());
+
+            var names = new HashSet<string>(scheduledByName.Keys);
+            names.UnionWith(checkInsByName.Keys);
+
+            return names.ToDictionary(n => n, n => AttendanceRules.Calculate(
+                scheduledByName.ContainsKey(n) ? scheduledByName[n] : new List<DateTime>(),
+                checkInsByName.ContainsKey(n) ? checkInsByName[n] : new List<DateTime>()));
         }
 
         private static DateTime StartOfWeek(DateTime date)

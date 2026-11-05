@@ -4,9 +4,15 @@ using System.Linq;
 using System.Web.Mvc;
 using FASSET.eCheckIn_v1.Data_Access_Layer;
 using FASSET.eCheckIn_v1.Models;
+using FASSET.eCheckIn_v1.Services;
 
 namespace FASSET.eCheckIn_v1.Controllers
 {
+    // Everything here needs a login. Employee management (create, edit,
+    // activate) is ICT (Admin) only; the directory and an employee's
+    // history are available to every report role, limited to the
+    // departments that user may see.
+    [RoleAuthorize(Roles = AppRoles.AnyReportRole)]
     public class EmployeesController : Controller
     {
         dal _dbAccess = new dal();
@@ -18,14 +24,22 @@ namespace FASSET.eCheckIn_v1.Controllers
         // a real, working employee" lists.
         public ActionResult Directory()
         {
+            var access = AdminAccessService.Current(HttpContext);
             var all = _dbAccess.GetAllEmployeesDetailed();
-            ViewBag.Employees = all.Where(e => e.IsActive).OrderBy(e => e.Name).ToList();
+            var visible = all.Where(e => e.IsActive);
+            if (!access.SeesAllDepartments)
+            {
+                var departments = _dbAccess.GetEmployeeReportingDepartments();
+                visible = visible.Where(e => departments.ContainsKey(e.Id) && access.CanSeeDepartment(departments[e.Id]));
+            }
+            ViewBag.Employees = visible.OrderBy(e => e.Name).ToList();
             return View();
         }
 
         // GET: Employees/Index
         // Admin CRUD grid - "Employee Management" in the sidebar. Includes
         // inactive employees too, since managing that status is the point.
+        [RoleAuthorize(Roles = AppRoles.Admin)]
         public ActionResult Index()
         {
             ViewBag.Employees = _dbAccess.GetAllEmployeesDetailed();
@@ -34,6 +48,7 @@ namespace FASSET.eCheckIn_v1.Controllers
         }
 
         // POST: Employees/Create
+        [RoleAuthorize(Roles = AppRoles.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public JsonResult Create(string name, string departmentName, string gender, string ethnicity, string occupationalLevel, string position)
@@ -55,6 +70,7 @@ namespace FASSET.eCheckIn_v1.Controllers
         }
 
         // POST: Employees/Update
+        [RoleAuthorize(Roles = AppRoles.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public JsonResult Update(int id, string name, string departmentName, string gender, string ethnicity, string occupationalLevel, string position)
@@ -76,6 +92,7 @@ namespace FASSET.eCheckIn_v1.Controllers
         }
 
         // POST: Employees/ToggleActive
+        [RoleAuthorize(Roles = AppRoles.Admin)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public JsonResult ToggleActive(int id, bool isActive)
@@ -113,6 +130,23 @@ namespace FASSET.eCheckIn_v1.Controllers
             var monthStart = new DateTime(y, m, 1);
             var monthEnd = monthStart.AddMonths(1).AddDays(-1);
 
+            // Role scoping (A1): a Manager/LLC user may only open the
+            // history of someone in a department they can see. Names can be
+            // duplicated in Employees, so any matching record in scope counts.
+            var access = AdminAccessService.Current(HttpContext);
+            if (!access.SeesAllDepartments)
+            {
+                var departments = _dbAccess.GetEmployeeReportingDepartments();
+                bool inScope = _dbAccess.GetAllEmployeesDetailed()
+                    .Where(e => e.Name == name)
+                    .Any(e => departments.ContainsKey(e.Id) && access.CanSeeDepartment(departments[e.Id]));
+                if (!inScope)
+                {
+                    Response.StatusCode = 403;
+                    return View("~/Views/Shared/AccessDenied.cshtml");
+                }
+            }
+
             var monthCheckIns = _dbAccess.GetCheckInReportData(monthStart, monthEnd, null)
                 .Where(r => r.EmployeeName == name)
                 .OrderBy(r => r.DateCreated)
@@ -125,10 +159,13 @@ namespace FASSET.eCheckIn_v1.Controllers
                 .OrderBy(d => d)
                 .ToList();
 
-            var checkedInDates = new HashSet<DateTime>(monthCheckIns.Select(r => r.DateCreated.Date));
-            var missedDates = monthScheduledDates.Where(d => !checkedInDates.Contains(d)).ToList();
+            // A3: missed days come from actual weekly presence, not exact
+            // dates, so a swapped day isn't counted as missed. See
+            // AttendanceRules.Calculate.
+            var weekly = AttendanceRules.Calculate(monthScheduledDates, monthCheckIns.Select(r => r.DateCreated));
 
-            TimeSpan lateThreshold = new TimeSpan(9, 0, 0);
+            // A4: configured late cut-off (Web.config LateCutoff).
+            TimeSpan lateThreshold = AttendanceRules.LateCutoff;
             int onTimeCount = monthCheckIns.Count(r => r.DateCreated.TimeOfDay <= lateThreshold);
             int lateCount = monthCheckIns.Count - onTimeCount;
 
@@ -147,14 +184,18 @@ namespace FASSET.eCheckIn_v1.Controllers
             ViewBag.MonthLabel = monthStart.ToString("MMMM yyyy");
             ViewBag.TotalCheckIns = monthCheckIns.Count;
             ViewBag.ExpectedCheckIns = monthScheduledDates.Count;
-            ViewBag.DaysMissed = missedDates.Count;
+            ViewBag.DaysMissed = weekly.MissedDays;
             ViewBag.OnTimeCount = onTimeCount;
             ViewBag.LateCount = lateCount;
             ViewBag.NextScheduled = upcomingScheduled != null
                 ? upcomingScheduled.ScheduleDate.ToString("dddd, d MMMM yyyy")
                 : "None scheduled in the next 90 days";
             ViewBag.CheckIns = monthCheckIns;
-            ViewBag.MissedDates = missedDates.Select(d => d.ToString("dddd, d MMMM")).ToList();
+            ViewBag.LateCutoff = AttendanceRules.LateCutoffLabel;
+            // One line per week they came in fewer days than scheduled.
+            ViewBag.MissedDates = weekly.WeeksShort
+                .Select(w => w.Label + ": in " + w.PresentDays + " of " + w.RequiredDays + " scheduled day" + (w.RequiredDays == 1 ? "" : "s"))
+                .ToList();
 
             return View();
         }

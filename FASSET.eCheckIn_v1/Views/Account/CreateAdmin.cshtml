@@ -62,10 +62,45 @@
         .admin-submit:hover {
             background: #14304f;
         }
+
+    .admin-field select {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        box-sizing: border-box;
+        background: #fff;
+    }
+
+    .admin-hint {
+        font-size: 12px;
+        color: #64748b;
+        margin-top: 4px;
+    }
+
+    .dept-list {
+        max-height: 220px;
+        overflow-y: auto;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 8px 12px;
+    }
+
+        .dept-list label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 400;
+            margin: 4px 0;
+        }
+
+        .dept-list input {
+            width: auto;
+        }
 </style>
 
 <div class="create-admin-wrap">
-    <h2 class="mb-4">Create Admin</h2>
+    <h2 class="mb-4">Create User</h2>
 
     @if (ViewBag.ErrorMessage != null)
     {
@@ -95,6 +130,44 @@
             <input type="password" name="confirmPassword" required />
         </div>
 
-        <button type="submit" class="admin-submit">Create Admin</button>
+        <div class="admin-field">
+            <label for="roleSelect">Role</label>
+            <select name="role" id="roleSelect" required>
+                <option value="">Choose a role&hellip;</option>
+                @foreach (string r in (IEnumerable<string>)ViewBag.Roles)
+                {
+                    <option value="@r">@r</option>
+                }
+            </select>
+            <div class="admin-hint">
+                Admin: ICT, full access. Executive: CEO's office, all departments.
+                LLC and Manager: only the departments ticked below.
+            </div>
+        </div>
+
+        <div class="admin-field" id="deptField">
+            <label>Departments they can see</label>
+            <div class="dept-list">
+                @foreach (var d in (IEnumerable<KeyValuePair<int, string>>)ViewBag.DepartmentOptions)
+                {
+                    <label><input type="checkbox" name="departmentIds" value="@d.Key" /> @d.Value</label>
+                }
+            </div>
+        </div>
+
+        <button type="submit" class="admin-submit">Create User</button>
     }
 </div>
+
+<script>
+    (function () {
+        var role = document.getElementById('roleSelect');
+        var field = document.getElementById('deptField');
+        function sync() {
+            var needs = role.value === 'Manager' || role.value === 'LLC';
+            field.style.display = needs ? '' : 'none';
+        }
+        role.addEventListener('change', sync);
+        sync();
+    })();
+</script>
